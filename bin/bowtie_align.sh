@@ -9,3 +9,5 @@ samtools view -Sb $OUTDIR/tmp/left_kept.sam > $OUTDIR/tmp/left_kept.bam
 samtools view -Sb $OUTDIR/tmp/right_kept.sam > $OUTDIR/tmp/right_kept.bam
 
 rm $OUTDIR/tmp/left_kept.sam $OUTDIR/tmp/right_kept.sam
+mv $OUTDIR/tmp/left_kept.bam $OUTDIR/left_kept.bam
+mv $OUTDIR/tmp/right_kept.bam $OUTDIR/right_kept.bam
