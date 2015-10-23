@@ -11,9 +11,12 @@ cutadapt -n 3 -m 17 --overlap 10 -a forward="ACGCGATATCTTATCTGACT" -a reverse="A
 cutadapt -n 3 -m 17 --overlap 10 -a forward="ACGCGATATCTTATCTGACT" -a reverse="AGTCAGATAAGATATCGCGT" -o $OUTDIR/r_t2.fq --untrimmed-output $OUTDIR/r_nt2.fq -p $OUTDIR/l_t2.fq --untrimmed-paired-output $OUTDIR/l_nt2.fq $OUTDIR/r_nt1.fq $OUTDIR/l_nt1.fq
 cutadapt -n 3 -m 17 --overlap 10 -a forward="ACGCGATATCTTATCTGACT" -a reverse="AGTCAGATAAGATATCGCGT" -o $OUTDIR/r_t3.fq --untrimmed-output $OUTDIR/r_nt3.fq -p $OUTDIR/l_t3.fq --untrimmed-paired-output $OUTDIR/l_nt3.fq $OUTDIR/r_t1.fq $OUTDIR/l_t1.fq
 
-cat $OUTDIR/l_t3.fq $OUTDIR/l_nt3.fq $OURDIR/l_t2.fq > $OUTDIR/left_kept.fq
-cat $OUTDIR/r_t3.fq $OUTDIR/r_nt3.fq $OURDIR/r_t2.fq > $OUTDIR/right_kept.fq
+cat $OUTDIR/l_t3.fq $OUTDIR/l_nt3.fq $OUTDIR/l_t2.fq > $OUTDIR/left_kept.fq
+cat $OUTDIR/r_t3.fq $OUTDIR/r_nt3.fq $OUTDIR/r_t2.fq > $OUTDIR/right_kept.fq
 
 cat $OUTDIR/l_nt2.fq > $OUTDIR/left_untrimmed.fq
 cat $OUTDIR/r_nt2.fq > $OUTDIR/right_untrimmed.fq
 
+### Cleanup
+rm l_*.fq r_*.fq
+rm left_reads.fq right_reads.fq
