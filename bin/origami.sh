@@ -4,7 +4,10 @@ BINDIR=~/dsday/origami/bin ### Need to generalize this
 OUTPUTDIR=output
 VERBOSE=off
 SKIP=on
+PARALLEL=off
 BZPOSTFIX="[.]bz2$"
+
+source $BINDIR/dispatch.sh
 
 verbose() {
 	if [ "$VERBOSE" = on ]
@@ -14,7 +17,7 @@ verbose() {
 	fi
 }
 
-TEMP=`getopt -o o::hva -l output::,noskip -n 'origami' -- "$@"`
+TEMP=`getopt -o o::hvap -l output::,noskip -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -37,6 +40,9 @@ while [ $# -ge 1 ]; do
 		--noskip)
 			SKIP=off
 			;;
+		-p)
+			PARALLEL=on
+			;;
 	esac
 	shift
 done
@@ -56,20 +62,22 @@ mkdir $OUTPUTDIR/tmp
 ### handle zip status
 if [[ $LEFTREADS =~ $BZPOSTFIX ]]
 then
-	bzcat $LEFTREADS > $OUTPUTDIR/tmp/left_unzip.fq
+	dispatch "bzcat $LEFTREADS > $OUTPUTDIR/tmp/left_unzip.fq"
 	LEFTREADS=$OUTPUTDIR/tmp/left_unzip.fq
 fi
 
-if [[ $RIGHTREADS =~ $BZPOSTFIX ]];
+if [[ $RIGHTREADS =~ $BZPOSTFIX ]]
 then
-        bzcat $RIGHTREADS > $OUTPUTDIR/tmp/right_unzip.fq
+        dispatch "bzcat $RIGHTREADS > $OUTPUTDIR/tmp/right_unzip.fq"
         RIGHTREADS=$OUTPUTDIR/tmp/right_unzip.fq
 fi
 
+wait
+
 verbose "Removing adapter sequences on $LEFTREADS and $RIGHTREADS"
-[ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.fq" ] && $BINDIR/adapter_trim.sh $OUTPUTDIR/tmp $LEFTREADS $RIGHTREADS
+[ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.fq" ] && $BINDIR/adapter_trim.sh $OUTPUTDIR/tmp $PARALLEL $LEFTREADS $RIGHTREADS
 
 
 verbose "Aligning reads"
-[ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.bam" ] && $BINDIR/bowtie_align.sh $OUTPUTDIR
+[ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.bam" ] && $BINDIR/bowtie_align.sh $OUTPUTDIR $PARALLEL
 echo "Done"
