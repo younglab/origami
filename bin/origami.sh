@@ -14,7 +14,7 @@ verbose() {
 	fi
 }
 
-TEMP=`getopt -o o::hva -l output:: -n 'origami' -- "$@"`
+TEMP=`getopt -o o::hva -l output::,noskip -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -34,7 +34,7 @@ while [ $# -ge 1 ]; do
 		-v)
 			VERBOSE=on
 			;;
-		-a)
+		--noskip)
 			SKIP=off
 			;;
 	esac
