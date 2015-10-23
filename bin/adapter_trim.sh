@@ -18,5 +18,5 @@ cat $OUTDIR/l_nt2.fq > $OUTDIR/left_untrimmed.fq
 cat $OUTDIR/r_nt2.fq > $OUTDIR/right_untrimmed.fq
 
 ### Cleanup
-rm l_*.fq r_*.fq
-rm left_reads.fq right_reads.fq
+rm $OUTDIR/l_*.fq $OUTDIR/r_*.fq
+rm $OUTDIR/left_reads.fq $OUTDIR/right_reads.fq

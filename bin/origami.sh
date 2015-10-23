@@ -4,6 +4,7 @@ BINDIR=~/dsday/origami/bin ### Need to generalize this
 OUTPUTDIR=output
 VERBOSE=off
 SKIP=on
+BZPOSTFIX="[.]bz2$"
 
 verbose() {
 	if [ "$VERBOSE" = on ]
@@ -40,16 +41,33 @@ while [ $# -ge 1 ]; do
 	shift
 done
 
+LEFTREADS="$1"
+RIGHTREADS="$2"
+
 echo "Launching origami..."
+
+verbose "Analyzing $LEFTREADS and $RIGHTREADS"
 
 verbose "Creating output directory"
 mkdir $OUTPUTDIR
 verbose "Creating temporary file directory"
 mkdir $OUTPUTDIR/tmp
 
+### handle zip status
+if [[ $LEFTREADS =~ $BZPOSTFIX ]]
+then
+	bzcat $LEFTREADS > $OUTPUTDIR/tmp/left_unzip.fq
+	LEFTREADS=$OUTPUTDIR/tmp/left_unzip.fq
+fi
 
-verbose "Removing adapter sequences"
-[ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.fq" ] && $BINDIR/adapter_trim.sh $OUTPUTDIR/tmp $1 $2
+if [[ $RIGHTREADS =~ $BZPOSTFIX ]];
+then
+        bzcat $RIGHTREADS > $OUTPUTDIR/tmp/right_unzip.fq
+        RIGHTREADS=$OUTPUTDIR/tmp/right_unzip.fq
+fi
+
+verbose "Removing adapter sequences on $LEFTREADS and $RIGHTREADS"
+[ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.fq" ] && $BINDIR/adapter_trim.sh $OUTPUTDIR/tmp $LEFTREADS $RIGHTREADS
 
 
 verbose "Aligning reads"
