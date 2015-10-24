@@ -15,6 +15,22 @@ dispatch "samtools view -Sb $OUTDIR/tmp/right_kept.sam > $OUTDIR/tmp/right_kept.
 
 wait
 
+dispatch "samtools sort -Obam -Tlefttmp -n $OUTDIR/tmp/left_kept.bam > $OUTDIR/tmp/left_kept.sorted.bam"
+dispatch "samtools sort -Obam -Trighttmp -n $OUTDIR/tmp/right_kept.bam > $OUTDIR/tmp/right_kept.sorted.bam"
+
+wait
+
+dispatch "~/dsday/origami/bin/mapped-reads-merge $OUTDIR/tmp/left_kept.sorted.bam $OUTDIR/tmp/right_kept.sorted.bam $OUTDIR/tmp/mapped_reads.bam"
+
+wait
+
+dispatch "samtools sort -Obam -Ttmp $OUTDIR/tmp/mapped_reads.bam > $OUTDIR/mapped_reads.bam"
+
+wait
+
 rm $OUTDIR/tmp/left_kept.sam $OUTDIR/tmp/right_kept.sam
-mv $OUTDIR/tmp/left_kept.bam $OUTDIR/left_kept.bam
-mv $OUTDIR/tmp/right_kept.bam $OUTDIR/right_kept.bam
+rm $OUTDIR/tmp/left_kept.sorted.bam $OUTDIR/tmp/right_kept.sorted.bam
+rm $OUTDIR/tmp/mapped_reads.bam
+
+#mv $OUTDIR/tmp/left_kept.bam $OUTDIR/left_kept.bam
+#mv $OUTDIR/tmp/right_kept.bam $OUTDIR/right_kept.bam

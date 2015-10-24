@@ -77,7 +77,10 @@ wait
 verbose "Removing adapter sequences on $LEFTREADS and $RIGHTREADS"
 [ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.fq" ] && $BINDIR/adapter_trim.sh $OUTPUTDIR/tmp $PARALLEL $LEFTREADS $RIGHTREADS
 
+rm -f $OUTPUTDIR/tmp/left_unzip.fq  $OUTPUTDIR/tmp/right_unzip.fq
 
 verbose "Aligning reads"
 [ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.bam" ] && $BINDIR/bowtie_align.sh $OUTPUTDIR $PARALLEL
+
+wait #finish all remaining processes
 echo "Done"

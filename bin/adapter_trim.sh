@@ -28,3 +28,11 @@ cat $OUTDIR/r_nt2.fq > $OUTDIR/right_untrimmed.fq
 ### Cleanup
 rm $OUTDIR/l_*.fq $OUTDIR/r_*.fq
 rm $OUTDIR/left_reads.fq $OUTDIR/right_reads.fq
+
+dispatch bzip2 $OUTDIR/left_untrimmed.fq
+dispatch bzip2 $OUTDIR/right_untrimmed.fq
+
+wait
+
+rm -f $OUTDIR/left_untrimmed.fq $OUTDIR/right_untrimmed.fq
+
