@@ -23,6 +23,9 @@ int main(int argc,char **argv) {
     while( left.GetNextAlignment(l) && right.GetNextAlignment(r)) {
         l.MateRefID = r.RefID;
         l.MatePosition = r.Position;
+        l.SetIsPaired(true);
+        l.SetIsMateMapped(r.IsMapped());
+        l.SetIsMateReverseStrand(r.IsReverseStrand());
         writer.SaveAlignment(l);
     }
     
