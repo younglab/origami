@@ -87,7 +87,7 @@ verbose "Removing adapter sequences on $LEFTREADS and $RIGHTREADS"
 rm -f $OUTPUTDIR/tmp/left_unzip.fq  $OUTPUTDIR/tmp/right_unzip.fq
 
 verbose "Aligning reads"
-#[ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.bam" ] && $BINDIR/bowtie_align.sh $OUTPUTDIR $PARALLEL
+[ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.bam" ] && $BINDIR/bowtie_align.sh $OUTPUTDIR $PARALLEL $SPLITNUM
 
 wait #finish all remaining processes
 echo "Done"
