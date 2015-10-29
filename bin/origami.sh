@@ -5,6 +5,7 @@ OUTPUTDIR=output
 VERBOSE=off
 SKIP=on
 PARALLEL=off
+SPLITNUM=4000000
 BZPOSTFIX="[.]bz2$"
 
 source $BINDIR/dispatch.sh
@@ -17,7 +18,7 @@ verbose() {
 	fi
 }
 
-TEMP=`getopt -o o::hvap -l output::,noskip -n 'origami' -- "$@"`
+TEMP=`getopt -o o::hvap -l output::,noskip,splitnum:: -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -43,6 +44,10 @@ while [ $# -ge 1 ]; do
 		-p)
 			PARALLEL=on
 			;;
+		--splitnum)
+		  SPLITNUM=$(expr "$2" \* 4)
+		  shift
+		  ;;
 	esac
 	shift
 done
@@ -58,6 +63,8 @@ verbose "Creating output directory"
 mkdir $OUTPUTDIR
 verbose "Creating temporary file directory"
 mkdir $OUTPUTDIR/tmp
+verbose "Creating logs directory"
+mkdir $OUTPUTDIR/logs
 
 ### handle zip status
 if [[ $LEFTREADS =~ $BZPOSTFIX ]]
@@ -75,12 +82,12 @@ fi
 wait
 
 verbose "Removing adapter sequences on $LEFTREADS and $RIGHTREADS"
-[ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.fq" ] && $BINDIR/adapter_trim.sh $OUTPUTDIR/tmp $PARALLEL $LEFTREADS $RIGHTREADS
+[ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.fq" ] && $BINDIR/adapter_trim.sh $OUTPUTDIR $PARALLEL $SPLITNUM $LEFTREADS $RIGHTREADS
 
 rm -f $OUTPUTDIR/tmp/left_unzip.fq  $OUTPUTDIR/tmp/right_unzip.fq
 
 verbose "Aligning reads"
-[ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.bam" ] && $BINDIR/bowtie_align.sh $OUTPUTDIR $PARALLEL
+#[ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.bam" ] && $BINDIR/bowtie_align.sh $OUTPUTDIR $PARALLEL
 
 wait #finish all remaining processes
 echo "Done"
