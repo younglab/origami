@@ -26,7 +26,16 @@ int main(int argc,char **argv) {
         l.SetIsPaired(true);
         l.SetIsMateMapped(r.IsMapped());
         l.SetIsMateReverseStrand(r.IsReverseStrand());
+        l.SetIsFirstMate(true);
         writer.SaveAlignment(l);
+        
+        r.MateRefID = l.RefID;
+        r.MatePosition = l.Position;
+        r.SetIsPaired(true);
+        r.SetIsMateMapped(l.IsMapped());
+        r.SetIsMateReverseStrand(l.IsReverseStrand());
+        r.SetIsSecondMate(true);
+        writer.SaveAlignment(r);
     }
     
     writer.Close();
