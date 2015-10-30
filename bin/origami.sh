@@ -1,5 +1,5 @@
 #!/bin/bash
-
+v
 BINDIR=~/dsday/origami/bin ### Need to generalize this
 OUTPUTDIR=output
 VERBOSE=off
@@ -90,4 +90,7 @@ verbose "Aligning reads"
 [ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.bam" ] && $BINDIR/bowtie_align.sh $OUTPUTDIR $PARALLEL $SPLITNUM
 
 wait #finish all remaining processes
+
+echo "Calling peaks"
+$BINDIR/peak-calling.sh $OUTPUTDIR
 echo "Done"
