@@ -2,4 +2,6 @@
 
 OUTDIR=$1
 
-macs2 callpeak -t $OUTDIR/mapped_reads.bam -n peaks --nomodel --shift 100 --outdir $OUTDIR
+bedtools bamtobed -i $OUTDIR/mapped_reads.bam > $OUTDIR/tmp/reads.bed
+macs2 callpeak -t $OUTDIR/tmp/reads.bed -n peaks --nomodel --shift 100 --outdir $OUTDIR
+rm $OUTDIR/tmp/reads.bed
