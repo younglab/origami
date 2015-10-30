@@ -6,7 +6,7 @@ OUTDIR=$1
 PARALLEL=$2
 SPLITNUM=$3
 
-if [ $PARALLEL = "on"]
+if [ $PARALLEL = "on" ]
 then
   dispatch "split -l $SPLITNUM $OUTDIR/tmp/left_kept.fq $OUTDIR/tmp/leftkept"
   dispatch "split -l $SPLITNUM $OUTDIR/tmp/right_kept.fq $OUTDIR/tmp/rightkept"
@@ -44,16 +44,16 @@ dispatch "samtools sort -Obam -Trighttmp -n $OUTDIR/tmp/right_kept.bam > $OUTDIR
 
 wait
 
-dispatch "~/dsday/origami/bin/mapped-reads-merge $OUTDIR/tmp/left_kept.sorted.bam $OUTDIR/tmp/right_kept.sorted.bam $OUTDIR/tmp/mapped_reads.bam"
+dispatch "~/dsday/origami/bin/mapped-reads-merge $OUTDIR/tmp/left_kept.sorted.bam $OUTDIR/tmp/right_kept.sorted.bam $OUTDIR/mapped_reads.bam"
 
 wait
 
-dispatch "samtools sort -Obam -Ttmp $OUTDIR/tmp/mapped_reads.bam > $OUTDIR/mapped_reads.bam"
+#dispatch "samtools sort -Obam -Ttmp $OUTDIR/tmp/mapped_reads.bam > $OUTDIR/mapped_reads.bam"
 
-wait
+#wait
 
 rm $OUTDIR/tmp/left_kept.sorted.bam $OUTDIR/tmp/right_kept.sorted.bam
-rm $OUTDIR/tmp/mapped_reads.bam
+#rm $OUTDIR/tmp/mapped_reads.bam
 
 #mv $OUTDIR/tmp/left_kept.bam $OUTDIR/left_kept.bam
 #mv $OUTDIR/tmp/right_kept.bam $OUTDIR/right_kept.bam
