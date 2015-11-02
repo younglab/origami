@@ -3,8 +3,9 @@
 source ~/dsday/origami/bin/dispatch.sh
 
 OUTDIR=$1
-PARALLEL=$2
-SPLITNUM=$3
+BOWTIEIDX=$2
+PARALLEL=$3
+SPLITNUM=$4
 
 if [ $PARALLEL = "on" ]
 then
@@ -15,12 +16,12 @@ then
 
   for FILE in $OUTDIR/tmp/leftkept*
   do
-	  dispatch "bowtie -n 1 -m 1 -p 6 --sam /nfs/genomes/human_gp_feb_09/bowtie/hg19 $FILE > $FILE.sam; samtools view -Sb $FILE.sam > $FILE.bam; rm $FILE.sam"
+	  dispatch "bowtie -n 1 -m 1 -p 6 --sam $BOWTIEIDX $FILE > $FILE.sam; samtools view -Sb $FILE.sam > $FILE.bam; rm $FILE.sam"
   done
 
   for FILE in $OUTDIR/tmp/rightkept*
   do
-  	dispatch "bowtie -n 1 -m 1 -p 6 --sam /nfs/genomes/human_gp_feb_09/bowtie/hg19 $FILE > $FILE.sam; samtools view -Sb $FILE.sam > $FILE.bam; rm $FILE.sam"
+  	dispatch "bowtie -n 1 -m 1 -p 6 --sam $BOWTIEIDX $FILE > $FILE.sam; samtools view -Sb $FILE.sam > $FILE.bam; rm $FILE.sam"
   done
 
   wait
@@ -33,8 +34,8 @@ then
   dispatch "rm $OUTDIR/tmp/leftkept* $OUTDIR/tmp/rightkept*"
   wait
 else
-  dispatch "bowtie -n 1 -m 1 -p 6 --sam /nfs/genomes/human_gp_feb_09/bowtie/hg19 $OUTDIR/tmp/left_kept.fq > $OUTDIR/tmp/left_kept.sam; samtools view -Sb $OUTDIR/tmp/left_kept.sam > $OUTDIR/tmp/left_kept.bam; rm $OUTDIR/tmp/left_kept.sam"
-	dispatch "bowtie -n 1 -m 1 -p 6 --sam /nfs/genomes/human_gp_feb_09/bowtie/hg19 $OUTDIR/tmp/right_kept.fq > $OUTDIR/tmp/right_kept.sam; samtools view -Sb $OUTDIR/tmp/right_kept.sam > $OUTDIR/tmp/right_kept.bam; rm $OUTDIR/tmp/right_kept.sam"
+  dispatch "bowtie -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTDIR/tmp/left_kept.fq > $OUTDIR/tmp/left_kept.sam; samtools view -Sb $OUTDIR/tmp/left_kept.sam > $OUTDIR/tmp/left_kept.bam; rm $OUTDIR/tmp/left_kept.sam"
+  dispatch "bowtie -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTDIR/tmp/right_kept.fq > $OUTDIR/tmp/right_kept.sam; samtools view -Sb $OUTDIR/tmp/right_kept.sam > $OUTDIR/tmp/right_kept.bam; rm $OUTDIR/tmp/right_kept.sam"
 
   wait
 fi

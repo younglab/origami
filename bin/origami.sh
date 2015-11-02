@@ -7,6 +7,7 @@ SKIP=on
 PARALLEL=off
 SPLITNUM=4000000
 BZPOSTFIX="[.]bz2$"
+BOWTIEIDX=notafile
 
 source $BINDIR/dispatch.sh
 
@@ -18,7 +19,7 @@ verbose() {
 	fi
 }
 
-TEMP=`getopt -o o::hvap -l output::,noskip,splitnum:: -n 'origami' -- "$@"`
+TEMP=`getopt -o o::hvap -l output::,noskip,splitnum::,bowtieidx: -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -46,6 +47,10 @@ while [ $# -ge 1 ]; do
 			;;
 		--splitnum)
 		  SPLITNUM=$(expr "$2" \* 4)
+		  shift
+		  ;;
+		--bowtieidx)
+		  BOWTIEIDX=$2
 		  shift
 		  ;;
 	esac
@@ -87,7 +92,7 @@ verbose "Removing adapter sequences on $LEFTREADS and $RIGHTREADS"
 rm -f $OUTPUTDIR/tmp/left_unzip.fq  $OUTPUTDIR/tmp/right_unzip.fq
 
 verbose "Aligning reads"
-[ "$SKIP" = off -o ! -e "$OUTPUTDIR/mapped_reads.bam" ] && $BINDIR/bowtie_align.sh $OUTPUTDIR $PARALLEL $SPLITNUM
+[ "$SKIP" = off -o ! -e "$OUTPUTDIR/mapped_reads.bam" ] && $BINDIR/bowtie_align.sh $OUTPUTDIR $BOWTIEIDX $PARALLEL $SPLITNUM
 
 wait #finish all remaining processes
 
