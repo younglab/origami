@@ -82,15 +82,20 @@ fi
 wait
 
 verbose "Removing adapter sequences on $LEFTREADS and $RIGHTREADS"
-[ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.fq" ] && $BINDIR/adapter_trim.sh $OUTPUTDIR $PARALLEL $SPLITNUM $LEFTREADS $RIGHTREADS
+[ "$SKIP" = off -o ! -e "$OUTPUTDIR/mapped_reads.bam" ] && $BINDIR/adapter_trim.sh $OUTPUTDIR $PARALLEL $SPLITNUM $LEFTREADS $RIGHTREADS
 
 rm -f $OUTPUTDIR/tmp/left_unzip.fq  $OUTPUTDIR/tmp/right_unzip.fq
 
 verbose "Aligning reads"
-[ "$SKIP" = off -o ! -e "$OUTPUTDIR/tmp/left_kept.bam" ] && $BINDIR/bowtie_align.sh $OUTPUTDIR $PARALLEL $SPLITNUM
+[ "$SKIP" = off -o ! -e "$OUTPUTDIR/mapped_reads.bam" ] && $BINDIR/bowtie_align.sh $OUTPUTDIR $PARALLEL $SPLITNUM
 
 wait #finish all remaining processes
 
 echo "Calling peaks"
 $BINDIR/peak-calling.sh $OUTPUTDIR
+
+echo "Finding links"
+
+bedtools pairtobed -bedpe -type both -a $OUTPUTDIR/mapped_reads.bam -b $OUTPUTDIR/peaks_peaks.narrowPeak > $OUTPUTDIR/raw-links.out
+
 echo "Done"
