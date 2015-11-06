@@ -99,8 +99,8 @@ wait #finish all remaining processes
 echo "Calling peaks"
 $BINDIR/peak-calling.sh $OUTPUTDIR
 
-echo "Finding links"
+#echo "Finding links"
 
-bedtools pairtobed -bedpe -type both -a $OUTPUTDIR/mapped_reads.bam -b $OUTPUTDIR/peaks_peaks.narrowPeak > $OUTPUTDIR/raw-links.out
+#bedtools pairtobed -bedpe -type both -a $OUTPUTDIR/mapped_reads.bam -b $OUTPUTDIR/peaks_peaks.narrowPeak > $OUTPUTDIR/raw-links.out
 
 echo "Done"
