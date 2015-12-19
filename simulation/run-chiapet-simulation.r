@@ -12,7 +12,7 @@ read.in.interactions <- function(fname) {
   temp
 }
 
-args <- commandArgs(T)
+if( !interactive() ) args <- commandArgs(T)
 
 binding <- read.in.binding.sites(args[1])
 ints <- read.in.interactions(args[2])
