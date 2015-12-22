@@ -23,3 +23,17 @@ second <- GRanges(seqnames=pets@rname[both.mapped][idx+1],
 
 of <- findOverlaps(first,peaks)
 os <- findOverlaps(second,peaks)
+
+total <- table(c(subjectHits(of),subjectHits(os)))
+p <- peaks
+mcols(p)[,"counts"] <- rep(0,length(p))
+mcols(p)[,"counts"][as.integer(names(total))] <- as.vector(total)
+
+write.table(as.data.frame(p)[,c(1,2,3,12)],file='peak-counts.txt',sep='\t',col.names = F,row.names = F,quote=F)
+
+l <- list()
+
+for( i in 1:length(p) ) {
+  l[[i]] <- unique(c(queryHits(of)[subjectHits(of)==i],queryHits(os)[subjectHits(os)==i]))
+
+}
