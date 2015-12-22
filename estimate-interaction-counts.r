@@ -32,8 +32,29 @@ mcols(p)[,"counts"][as.integer(names(total))] <- as.vector(total)
 write.table(as.data.frame(p)[,c(1,2,3,12)],file='peak-counts.txt',sep='\t',col.names = F,row.names = F,quote=F)
 
 l <- list()
+qof <- queryHits(of)
+sof <- subjectHits(of)
+qos <- queryHits(os)
+sos <- subjectHits(os)
 
-for( i in 1:length(p) ) {
-  l[[i]] <- unique(c(queryHits(of)[subjectHits(of)==i],queryHits(os)[subjectHits(os)==i]))
+midx <- match(qof,qos)
+m <- matrix(c(sof[!is.na(midx)],sos[midx[!is.na(midx)]]),ncol=2)
+m <- m[order(m[,1],m[,2]),]
 
-}
+f <- factor(paste(m[,1],m[,2],sep='_'))
+
+intcounts <- do.call(rbind,lapply(split(1:nrow(m),f),function(idx) {
+  if(length(idx) == 1 ) {
+    ret <- c(m[idx,],1)
+  } else {
+    ret <- c(m[idx[1],],length(idx))
+  }
+  
+  ret
+}))
+
+rownames(intcounts) <- NULL
+
+outtable <- as.data.frame(peaks)[,c(1,2,3)]
+outtable <- cbind(outtable[intcounts[,1],],outtable[intcounts[,2],],intcounts[,3])
+write.table(outtable,file="int-counts.txt",sep='\t',col.names=F,row.names=F,quote=F)
