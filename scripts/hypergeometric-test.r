@@ -1,55 +1,24 @@
-source("~/scripts/tags.r")
-source("~/scripts/peaks.r")
+library(GenomicRanges)
 
-if(!interactive()) {
-  args <- commandArgs(T)
-  bamfile <- args[1]
-  peakfile <- args[2]
-}
-
-pets <- readInBamFile(bamfile)
-peaks <- read.narrow.peak.file(peakfile)
-
-both.mapped <- !is.na(pets@pos) & !is.na(pets@mpos)
-
-idx <- seq(1,sum(both.mapped),by=2)
-
-first <- GRanges(seqnames=pets@rname[both.mapped][idx],
-                 ranges=IRanges(pets@pos[both.mapped][idx],width=1),
-                 strand='*')
-second <- GRanges(seqnames=pets@rname[both.mapped][idx+1],
-                 ranges=IRanges(pets@pos[both.mapped][idx+1],width=1),
-                 strand='*')
-
-of <- findOverlaps(first,peaks)
-os <- findOverlaps(second,peaks)
-
-counts <- matrix(0,nrow=length(peaks),ncol=length(peaks))
-
-i <- intersect(queryHits(of),queryHits(os))
-
-sf <- subjectHits(of)[queryHits(of) %in% i]
-ss <- subjectHits(os)[queryHits(os) %in% i]
-
-for( i in unique(sf) ) {
-  w <- which(sf==i)
-  n <- table(ss[w])
+estimate.hypergeometric.pvalue <- function(ints,depth) {
+  d <- GRanges(seqnames=as.character(depth$V1),ranges=IRanges(depth$V2,depth$V3),strand='*')
+  g1 <- GRanges(seqnames=as.character(ints$V1),ranges=IRanges(ints$V2,ints$V3),strand='*')
+  g2 <- GRanges(seqnames=as.character(ints$V4),ranges=IRanges(ints$V5,ints$V6),strand='*')
   
-  counts[i,as.integer(names(n))] <- as.vector(n)
-}
-
-total <- rowSums(counts)
-N <- sum(total)
-
-lapply(1:(length(peaks)-1),function(i) {
-  v <- c()
-  for( j in (i+1):length(peaks)) {
-    
-    v <- c(v,i,j,)
-  }
+  m1 <- match(g1,d)
+  m2 <- match(g2,d)
+  pets <- ints[,7]
+  dv <- depth[,4]
+  pval <- c()
+  pval <- lchoose(dv[m1],pets)+lchoose(2*sum(dv)-dv[m1],dv[m2]-pets) - lchoose(2*sum(dv),dv[m2])
+#  for( i in 1:length(g1) ) {
+#    print(c(dv[m1[i]],dv[m2[i]],pets[i],sum(dv)))
+#    p <- lchoose(dv[m1[i]],pets[i])+lchoose(2*sum(dv)-dv[m1[i]],dv[m2[i]]-pets[i])-lchoose(2*sum(dv),dv[m2[i]])
+ #   pval <- c(pval,exp(p))
+#  }
   
-  matrix(v,nrow=length(v)/3,byrow=T)
-})
+  exp(pval)
+}
 
 #choose(total[2],counts[2,])[-2]*choose(2*N,total[-2]-counts[2,-2])/choose(2*N,total[-2])
 #choose(total[51818],counts[51818,])[-51818]*choose(2*N-total[51818],total[-51818]-counts[51818,][-51818])/choose(2*N,total[-51818])
