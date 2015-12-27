@@ -1,5 +1,5 @@
-source("~/dsday/origami-deploy/scripts/hypergeometric-test.r")
-source("~/dsday/origami-deploy/scripts/per-sample-bayesian.r")
+source("~/dsday/origami/scripts/hypergeometric-test.r")
+source("~/dsday/origami/scripts/per-sample-bayesian.r")
 
 
 convert.to.factor <- function(pos,idx,l=NULL) {
