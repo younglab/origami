@@ -21,7 +21,9 @@ i2 <- convert.to.factor(intcounts,4:6,f)
 
 p <- intcounts[i1 != i2,]
 
-hyperg <- estimate.hypergeometric.pvalue(p,depth)
-bayesps <- estimate.per.sample.bayesian.probability(p,depth)
-
-write.csv(cbind(p,hyperg,bayesps),file='results.csv')
+if( !interactive() ){
+  hyperg <- estimate.hypergeometric.pvalue(p,depth)
+  bayesps <- estimate.per.sample.bayesian.probability(p,depth)
+  
+  write.csv(cbind(p,hyperg,bayesps),file='results.csv')
+}
