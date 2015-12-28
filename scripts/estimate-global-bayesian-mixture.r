@@ -20,7 +20,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1000) {
   for( i in 1:N ) {
 #    print(c(lambda1[i],lambda0[i]))
     vp <- f(sapply(l,function(v) v$p1[i]),lambda1[i],lambda0[i])
-    print(vp)
+    if(any(is.na(vp))) vp[is.na(vp)] <- 0 ### need  more intelligent way to handle this
     vz <- rbinom(S,1,vp)
     #print(sum(vz))
     l <- mapply(function(lx,z){

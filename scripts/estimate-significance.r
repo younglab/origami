@@ -1,5 +1,6 @@
 source("~/dsday/origami/scripts/hypergeometric-test.r")
 source("~/dsday/origami/scripts/per-sample-bayesian.r")
+source("~/dsday/origami/scripts/estimate-global-bayesian-mixture.r")
 
 
 convert.to.factor <- function(pos,idx,l=NULL) {
@@ -25,5 +26,11 @@ if( !interactive() ){
   hyperg <- estimate.hypergeometric.pvalue(p,depth)
   bayesps <- estimate.per.sample.bayesian.probability(p,depth)
   
-  write.csv(cbind(p,hyperg,bayesps),file='results.csv')
+  gbayes.m <- estimate.global.bayesian.mixture(p,depth)
+  gbayesp <- extract.global.bayesian.prob(gbayes.m)
+  
+  m <- cbind(p,hyperg,bayesps,gbayesp)
+  colnames(m) <- c("chromosome1","start1","end1","chromosome2","start2","end2","Hypergeometric p-value","Bayes posterior probability 1","Bayes global mixture posterior probability")
+  
+  write.csv(cbind(p,hyperg,bayesps),file='results.csv',row.names=F,quote=F)
 }
