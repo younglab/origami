@@ -1,10 +1,18 @@
-estimate.global.bayesian.mixture <- function(ints,depth,N=1000) {
+estimate.global.bayesian.mixture <- function(ints,depth,N=1000,no.depth=F) {
   S <- nrow(ints)
   
-  l <- lapply(1:nrow(ints),function(i) list(z=c(),p1=c(.5)))
+  d <- GRanges(seqnames=as.character(depth$V1),ranges=IRanges(depth$V2,depth$V3),strand='*')
+  g1 <- GRanges(seqnames=as.character(ints$V1),ranges=IRanges(ints$V2,ints$V3),strand='*')
+  g2 <- GRanges(seqnames=as.character(ints$V4),ranges=IRanges(ints$V5,ints$V6),strand='*')
   
+  m1 <- match(g1,d)
+  m2 <- match(g2,d)
   counts <- ints[,7]
   d <- depth[,3]
+  
+  mdepth <- mean(apply(cbind(m1,m2),1,function(v) sum(d[v])))
+  
+  l <- lapply(1:nrow(ints),function(i) list(sdepth=d[m1[i]]+d[m2[i]],z=c(),p1=c(.5)))
   
   lambda0 <- c(1)
   lambda1 <- c(5)
@@ -24,7 +32,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1000) {
     vz <- rbinom(S,1,vp)
     #print(sum(vz))
     l <- mapply(function(lx,z){
-      p <- rbeta(1,1+z,1+(1-z))
+      p <- if( no.depth ) rbeta(1,1+z,1+(1-z)) else rbeta(1,lx$sdepth+z,mdepth+(1-z))
       lx$z[i] <- z
       lx$p1[i+1] <- p
       lx

@@ -11,11 +11,6 @@ estimate.hypergeometric.pvalue <- function(ints,depth) {
   dv <- depth[,4]
   pval <- c()
   pval <- lchoose(dv[m1],pets)+lchoose(2*sum(dv)-dv[m1],dv[m2]-pets) - lchoose(2*sum(dv),dv[m2])
-#  for( i in 1:length(g1) ) {
-#    print(c(dv[m1[i]],dv[m2[i]],pets[i],sum(dv)))
-#    p <- lchoose(dv[m1[i]],pets[i])+lchoose(2*sum(dv)-dv[m1[i]],dv[m2[i]]-pets[i])-lchoose(2*sum(dv),dv[m2[i]])
- #   pval <- c(pval,exp(p))
-#  }
   
   exp(pval)
 }
