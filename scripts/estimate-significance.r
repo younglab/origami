@@ -32,5 +32,5 @@ if( !interactive() ){
   m <- cbind(p,hyperg,bayesps,gbayesp)
   colnames(m) <- c("chromosome1","start1","end1","chromosome2","start2","end2","Hypergeometric p-value","Bayes posterior probability 1","Bayes global mixture posterior probability")
   
-  write.csv(cbind(p,hyperg,bayesps),file='results.csv',row.names=F,quote=F)
+  write.csv(m,file='results.csv',row.names=F,quote=F)
 }
