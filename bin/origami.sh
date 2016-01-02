@@ -1,5 +1,5 @@
 #!/bin/bash
-v
+
 BINDIR=~/dsday/origami/bin ### Need to generalize this
 OUTPUTDIR=output
 VERBOSE=off
