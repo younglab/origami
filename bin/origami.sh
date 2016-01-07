@@ -92,19 +92,19 @@ verbose "Creating logs directory"
 mkdir $OUTPUTDIR/logs
 
 ### handle zip status
-if [[ $LEFTREADS =~ $BZPOSTFIX ]]
-then
-	dispatch "bzcat $LEFTREADS > $OUTPUTDIR/tmp/left_unzip.fq"
-	LEFTREADS=$OUTPUTDIR/tmp/left_unzip.fq
-fi
+#if [[ $LEFTREADS =~ $BZPOSTFIX ]]
+#then
+#	dispatch "bzcat $LEFTREADS > $OUTPUTDIR/tmp/left_unzip.fq"
+#	LEFTREADS=$OUTPUTDIR/tmp/left_unzip.fq
+#fi
 
-if [[ $RIGHTREADS =~ $BZPOSTFIX ]]
-then
-        dispatch "bzcat $RIGHTREADS > $OUTPUTDIR/tmp/right_unzip.fq"
-        RIGHTREADS=$OUTPUTDIR/tmp/right_unzip.fq
-fi
+#if [[ $RIGHTREADS =~ $BZPOSTFIX ]]
+#then
+#        dispatch "bzcat $RIGHTREADS > $OUTPUTDIR/tmp/right_unzip.fq"
+#        RIGHTREADS=$OUTPUTDIR/tmp/right_unzip.fq
+#fi
 
-wait
+#wait
 
 verbose "Removing adapter sequences on $LEFTREADS and $RIGHTREADS"
 [ "$SKIP" = off -o ! -e "$OUTPUTDIR/mapped_reads.bam" ] && $BINDIR/adapter_trim.sh $OUTPUTDIR $PARALLEL $SPLITNUM $LEFTREADS $RIGHTREADS

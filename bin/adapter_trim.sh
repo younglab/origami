@@ -10,13 +10,20 @@ SPLITNUM=$3
 
 if [ $PARALLEL = "on" ]
 then
-  dispatch "sed -e 's/\/[0-9];[0-9]//' $4 > $OUTDIR/tmp/left_reads.fq"
-  dispatch "sed -e 's/\/[0-9];[0-9]//' $5 > $OUTDIR/tmp/right_reads.fq"
+  # need to generalize this
+  dispatch "bzcat $4 | sed -e 's/\/[0-9];[0-9]//' > $OUTDIR/tmp/left_reads.fq"
+  dispatch "bzcat $5 | sed -e 's/\/[0-9];[0-9]//' > $OUTDIR/tmp/right_reads.fq"
   
   wait 
   dispatch "split -l $SPLITNUM $OUTDIR/tmp/left_reads.fq $OUTDIR/tmp/leftreads"
   dispatch "split -l $SPLITNUM $OUTDIR/tmp/right_reads.fq $OUTDIR/tmp/rightreads"
   
+  wait
+  
+  #rm $OUTDIR/tmp/left_reads.fq $OUTDIR/tmp/right_reads.fq
+  dispatch "bzip2 $OUTDIR/tmp/left_reads.fq"
+  dispatch "bzip2 $OUTDIR/tmp/right_reads.fq"
+
   wait
   
   ## One assumption here is that split names the files in the same linear order -- maybe this should be done differently?
@@ -66,11 +73,12 @@ else
 
   wait
   
+  rm $OUTDIR/tmp/left_reads.fq $OUTDIR/tmp/right_reads.fq
+  
 fi
 
 ### Cleanup
 rm $OUTDIR/tmp/l_*.fq $OUTDIR/tmp/r_*.fq
-rm $OUTDIR/tmp/left_reads.fq $OUTDIR/tmp/right_reads.fq
 
 dispatch bzip2 $OUTDIR/tmp/left_untrimmed.fq
 dispatch bzip2 $OUTDIR/tmp/right_untrimmed.fq
