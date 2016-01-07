@@ -19,6 +19,20 @@ verbose() {
 	fi
 }
 
+helpmenu() {
+  if [ $# -eq 1 ];
+  then
+    echo $1
+  fi
+  echo "origami.sh [options] <first FASTQ> <second FASTQ>"
+  echo "  -o,--output= output directory (default output)"
+  echo "  -h Help menu"
+  echo "  -v verbose mode"
+  echo "  -p parallel mode (distributed bsub)"
+  echo "  --splitnum=<NUM> Split reads into NUM for -p (default none)"
+  echo "  --bowtieidx= Bowtie iddex"
+}
+
 TEMP=`getopt -o o::hvap -l output::,noskip,splitnum::,bowtieidx: -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
@@ -33,7 +47,7 @@ while [ $# -ge 1 ]; do
 			shift
 			;;
 		-h)
-			echo "Help menu"
+			helpmenu
 			exit 0
 			;;
 		-v)
@@ -56,6 +70,12 @@ while [ $# -ge 1 ]; do
 	esac
 	shift
 done
+
+if [ $# -lt 2 ];
+then
+  helpmenu "Error: did not supply necessary file name arguments"
+  exit 1
+fi
 
 LEFTREADS="$1"
 RIGHTREADS="$2"
