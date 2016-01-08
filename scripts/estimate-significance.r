@@ -1,5 +1,5 @@
 source("~/dsday/origami/scripts/hypergeometric-test.r")
-source("~/dsday/origami/scripts/per-sample-bayesian.r")
+#source("~/dsday/origami/scripts/per-sample-bayesian.r")
 source("~/dsday/origami/scripts/estimate-global-bayesian-mixture.r")
 
 
@@ -24,13 +24,16 @@ p <- intcounts[i1 != i2,]
 
 if( !interactive() ){
   hyperg <- estimate.hypergeometric.pvalue(p,depth)
-  bayesps <- estimate.per.sample.bayesian.probability(p,depth)
+  #bayesps <- estimate.per.sample.bayesian.probability(p,depth)
   
   gbayes.m <- estimate.global.bayesian.mixture(p,depth)
   gbayesp <- extract.global.bayesian.prob(gbayes.m)
   
-  m <- cbind(p,hyperg,bayesps,gbayesp)
-  colnames(m) <- c("chromosome1","start1","end1","chromosome2","start2","end2","PET Count","Hypergeometric p-value","Bayes posterior probability 1","Bayes global mixture posterior probability")
+  #m <- cbind(p,hyperg,bayesps,gbayesp)
+  m <- cbind(p,hyperg,gbayesp)
+  
+  #colnames(m) <- c("chromosome1","start1","end1","chromosome2","start2","end2","PET Count","Hypergeometric p-value","Bayes posterior probability 1","Bayes global mixture posterior probability")
+  colnames(m) <- c("chromosome1","start1","end1","chromosome2","start2","end2","PET Count","Hypergeometric p-value","Bayes global mixture posterior probability")
   
   write.csv(m,file='results.csv',row.names=F,quote=F)
 }
