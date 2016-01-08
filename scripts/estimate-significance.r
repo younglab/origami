@@ -2,6 +2,12 @@ source("~/dsday/origami/scripts/hypergeometric-test.r")
 #source("~/dsday/origami/scripts/per-sample-bayesian.r")
 source("~/dsday/origami/scripts/estimate-global-bayesian-mixture.r")
 
+outfile <- "results.csv"
+
+if( !interactive() ) {
+  args <- commandArgs(T)
+  if( !is.null(args[1])) outfile <- args[1]
+}
 
 convert.to.factor <- function(pos,idx,l=NULL) {
   d <- pos[,idx]
@@ -35,5 +41,5 @@ if( !interactive() ){
   #colnames(m) <- c("chromosome1","start1","end1","chromosome2","start2","end2","PET Count","Hypergeometric p-value","Bayes posterior probability 1","Bayes global mixture posterior probability")
   colnames(m) <- c("chromosome1","start1","end1","chromosome2","start2","end2","PET Count","Hypergeometric p-value","Bayes global mixture posterior probability")
   
-  write.csv(m,file='results.csv',row.names=F,quote=F)
+  write.csv(m,file=outfile,row.names=F,quote=F)
 }

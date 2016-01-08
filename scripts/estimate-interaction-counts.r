@@ -5,6 +5,11 @@ if(!interactive()) {
   args <- commandArgs(T)
   bamfile <- args[1]
   peakfile <- args[2]
+  outfile <- if(is.null(args[3])) "results.csv" else args[3]
+}
+
+if( is.null(bamfile) || is.null(peakfile) ) {
+	stop("estimate-interaction-counts.r <BAM file> <peaks file> [output file]")
 }
 
 pets <- readInBamFile(bamfile)
