@@ -5,11 +5,13 @@ if(!interactive()) {
   args <- commandArgs(T)
   bamfile <- args[1]
   peakfile <- args[2]
-  outfile <- if(is.null(args[3])) "results.csv" else args[3]
+  peakcountsfile <- if(is.null(args[3])) "peak-counts.txt" else args[3]
+  intcountsfile <- if(is.null(args[4])) "int-counts.txt" else args[4]
+  
 }
 
 if( is.null(bamfile) || is.null(peakfile) ) {
-	stop("estimate-interaction-counts.r <BAM file> <peaks file> [output file]")
+	stop("estimate-interaction-counts.r <BAM file> <peaks file> [peak counts file] [interaction counts file]")
 }
 
 pets <- readInBamFile(bamfile)
@@ -34,7 +36,7 @@ p <- peaks
 mcols(p)[,"counts"] <- rep(0,length(p))
 mcols(p)[,"counts"][as.integer(names(total))] <- as.vector(total)
 
-write.table(as.data.frame(p)[,c(1,2,3,12)],file='peak-counts.txt',sep='\t',col.names = F,row.names = F,quote=F)
+write.table(as.data.frame(p)[,c(1,2,3,12)],file=peakcountsfile,sep='\t',col.names = F,row.names = F,quote=F)
 
 l <- list()
 qof <- queryHits(of)
@@ -62,4 +64,4 @@ rownames(intcounts) <- NULL
 
 outtable <- as.data.frame(peaks)[,c(1,2,3)]
 outtable <- cbind(outtable[intcounts[,1],],outtable[intcounts[,2],],intcounts[,3])
-write.table(outtable,file="int-counts.txt",sep='\t',col.names=F,row.names=F,quote=F)
+write.table(outtable,file=intcountsfile,sep='\t',col.names=F,row.names=F,quote=F)

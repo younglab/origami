@@ -2,11 +2,15 @@ source("~/dsday/origami/scripts/hypergeometric-test.r")
 #source("~/dsday/origami/scripts/per-sample-bayesian.r")
 source("~/dsday/origami/scripts/estimate-global-bayesian-mixture.r")
 
+peakcounts <- "peak-counts.txt"
+intcounts <- "int-counts.txt"
 outfile <- "results.csv"
 
 if( !interactive() ) {
   args <- commandArgs(T)
-  if( !is.null(args[1])) outfile <- args[1]
+  if( !is.null(args[1])) peakcounts <- args[1]
+  if( !is.null(args[2])) intcounts <- args[2]
+  if( !is.null(args[3])) outfile <- args[3]
 }
 
 convert.to.factor <- function(pos,idx,l=NULL) {
@@ -18,8 +22,8 @@ convert.to.factor <- function(pos,idx,l=NULL) {
 }
 
 
-depth <- read.table("peak-counts.txt",sep='\t')
-intcounts <- read.table("int-counts.txt",sep='\t')
+depth <- read.table(peakcounts,sep='\t')
+intcounts <- read.table(intcounts,sep='\t')
 
 f <- convert.to.factor(depth,1:3)
 
