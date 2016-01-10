@@ -1,4 +1,4 @@
-estimate.global.bayesian.mixture <- function(ints,depth,N=1000,no.depth=F) {
+estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruning=NULL,with.distance.weight=F,no.depth=F) {
   S <- nrow(ints)
   
   d <- GRanges(seqnames=as.character(depth$V1),ranges=IRanges(depth$V2,depth$V3),strand='*')
