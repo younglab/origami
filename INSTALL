@@ -1,0 +1,4 @@
+0. Run autoconf (if installing from source)
+1. Run ./configure
+2. Run make
+3. Run make install
