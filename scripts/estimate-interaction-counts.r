@@ -63,5 +63,20 @@ intcounts <- do.call(rbind,lapply(split(1:nrow(m),f),function(idx) {
 rownames(intcounts) <- NULL
 
 outtable <- as.data.frame(peaks)[,c(1,2,3)]
-outtable <- cbind(outtable[intcounts[,1],],outtable[intcounts[,2],],intcounts[,3])
+
+locations <- cbind(outtable[intcounts[,1],],outtable[intcounts[,2],])
+
+samechromosome <- locations[,1] == locations[,4]
+
+if(any(samechromosome)) {
+  flip <- as.integer(outtable[intcounts[,1],][samechromosome,2]) > as.integer(outtable[intcounts[,2],][samechromosome,2])
+  outtable <- cbind(outtable[intcounts[,1],],outtable[intcounts[,2],],intcounts[,3])
+  
+  
+  tmp <- outtable[samechromosome,][flip,4:6]
+  outtable[samechromosome,][flip,4:6] <- outtable[samechromosome,][flip,1:3]
+  outtable[samechromosome,][flip,1:3] <- tmp
+} else {
+  outtable <- cbind(outtable[intcounts[,1],],outtable[intcounts[,2],],intcounts[,3])
+}
 write.table(outtable,file=intcountsfile,sep='\t',col.names=F,row.names=F,quote=F)
