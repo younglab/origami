@@ -8,7 +8,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruni
   m1 <- match(g1,d)
   m2 <- match(g2,d)
   counts <- ints[,7]
-  d <- depth[,3]
+  d <- depth[,4]
   
   mdepth <- mean(apply(cbind(m1,m2),1,function(v) sum(d[v])))
   
