@@ -8,9 +8,9 @@ outfile <- "results.csv"
 
 if( !interactive() ) {
   args <- commandArgs(T)
-  if( !is.null(args[1])) peakcounts <- args[1]
-  if( !is.null(args[2])) intcounts <- args[2]
-  if( !is.null(args[3])) outfile <- args[3]
+  if( !is.na(args[1])) peakcounts <- args[1]
+  if( !is.nal(args[2])) intcounts <- args[2]
+  if( !is.na(args[3])) outfile <- args[3]
 }
 
 convert.to.factor <- function(pos,idx,l=NULL) {
