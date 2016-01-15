@@ -19,6 +19,7 @@ then
   dispatch "split -l $SPLITNUM $OUTDIR/tmp/right_reads.fq $OUTDIR/tmp/rightreads"
   
   wait
+
   
   #rm $OUTDIR/tmp/left_reads.fq $OUTDIR/tmp/right_reads.fq
   dispatch "bzip2 $OUTDIR/tmp/left_reads.fq"

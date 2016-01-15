@@ -24,13 +24,13 @@ helpmenu() {
   then
     echo $1
   fi
-  echo "origami.sh [options] <first FASTQ> <second FASTQ>"
+  echo "origami.sh [options] <bowtie index> <first FASTQ> <second FASTQ>"
   echo "  -o,--output= output directory (default output)"
   echo "  -h Help menu"
   echo "  -v verbose mode"
-  echo "  -p parallel mode (distributed bsub)"
+  echo "  -p parallel LSF mode (distributed bsub)"
   echo "  --splitnum=<NUM> Split reads into NUM for -p (default none)"
-  echo "  --bowtieidx= Bowtie iddex"
+  echo "  --bowtieidx= Bowtie index (deprecated, inactive)"
 }
 
 TEMP=`getopt -o o::hvap -l output::,noskip,splitnum::,bowtieidx: -n 'origami' -- "$@"`
@@ -64,6 +64,7 @@ while [ $# -ge 1 ]; do
 		  shift
 		  ;;
 		--bowtieidx)
+		  echo "Deprecated option (does not do anything)"
 		  BOWTIEIDX=$2
 		  shift
 		  ;;
@@ -71,14 +72,15 @@ while [ $# -ge 1 ]; do
 	shift
 done
 
-if [ $# -lt 2 ];
+if [ $# -lt 3 ];
 then
   helpmenu "Error: did not supply necessary file name arguments"
   exit 1
 fi
 
-LEFTREADS="$1"
-RIGHTREADS="$2"
+BOWTIEIDX="$1"
+LEFTREADS="$2"
+RIGHTREADS="$3"
 
 echo "Launching origami..."
 
