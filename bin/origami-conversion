@@ -1,6 +1,25 @@
 #!/usr/bin/perl
 
 use strict;
+use Switch;
+use POSIX qw(floor);
+
+sub tobed {
+  my $c = $_[0];
+  
+  while(<F>) {
+    chomp;
+    my @arr = split /,/;
+    
+    next unless $arr[0] eq $arr[3]; # only print lines with intrachromosomal interactions (since BED is not designed to handle interchromsomal data)
+    
+    my $val = floor($arr[5+$c]*1000);
+    my $size = ($arr[2]-$arr[1]) . ',' . ($arr[5]-$arr[4]);
+    my $starts = ($arr[1]-$arr[1]) . ',' . ($arr[4]-$arr[1]);
+    
+    print "$arr[0]\t$arr[1]\t$arr[5]\tInteraction\t$val\t+\t$arr[1]\t$arr[1]\t0,0,0\t2\t$size\t$starts\n";
+  }
+}
 
 sub tobedpe {
   my $c = $_[0];
@@ -13,7 +32,7 @@ sub tobedpe {
 }
 
 if( $#ARGV < 2 ) {
-  die "origami-conversion <bedpe> <results file> <score column>";
+  die "origami-conversion <bed/bedpe> <results file> <score column>";
 }
 
 my $option = $ARGV[0];
@@ -26,6 +45,9 @@ die "Score column is not a number" unless $column =~ /\d+/;
 open(F,"$file") or die "Cannot open $!";
 <F>; # discard header line
 
-tobedpe($column);
-
+switch($option) {
+  case "bed"    { tobed($column); }
+  case "bedpe"  { tobedpe($column); }
+  else          { print "Invalid option: $option\n"; }
+}
 close(F);
