@@ -26,8 +26,9 @@ then
 
   wait
 
-  dispatch "samtools merge $OUTDIR/tmp/left_kept.bam $OUTDIR/tmp/leftkept*.bam"
-  dispatch "samtools merge $OUTDIR/tmp/right_kept.bam $OUTDIR/tmp/rightkept*.bam"
+  dispatch "cd $OUTDIR/tmp && samtools merge left_kept.bam leftkept*.bam"
+  dispatch "cd $OUTDIR/tmp && samtools merge right_kept.bam rightkept*.bam"
+
 
   wait
 
