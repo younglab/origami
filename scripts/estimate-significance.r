@@ -9,7 +9,7 @@ outfile <- "results.csv"
 if( !interactive() ) {
   args <- commandArgs(T)
   if( !is.na(args[1])) peakcounts <- args[1]
-  if( !is.nal(args[2])) intcounts <- args[2]
+  if( !is.na(args[2])) intcounts <- args[2]
   if( !is.na(args[3])) outfile <- args[3]
 }
 
