@@ -3,7 +3,7 @@ source("~/scripts/peaks.r")
 
 if(!interactive()) {
   args <- commandArgs(T)
-  bamfile <- if(is.na(args[1])) "mapped_reads.narrowPeak" else args[1]
+  bamfile <- if(is.na(args[1])) "mapped_reads.bam" else args[1]
   peakfile <- if(is.na(args[2])) "peaks_peaks.narrowPeak" else args[2]
   peakcountsfile <- if(is.na(args[3])) "peak-counts.txt" else args[3]
   intcountsfile <- if(is.na(args[4])) "int-counts.txt" else args[4]
