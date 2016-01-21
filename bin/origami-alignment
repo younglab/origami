@@ -1,6 +1,7 @@
 #!/bin/bash
 
-BINDIR=~/dsday/origami/bin ### Need to generalize this
+BASEDIR=$(dirname $0)
+BINDIR=$BASEDIR/../bin
 OUTPUTDIR=output
 VERBOSE=off
 SKIP=on
