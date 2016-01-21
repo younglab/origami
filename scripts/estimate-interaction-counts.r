@@ -1,6 +1,12 @@
 source("~/scripts/tags.r")
 source("~/scripts/peaks.r")
 
+read.bed.file <- function(file) {
+  temp <- read.table(file,sep='\t')
+  
+  GRanges(seqnames=as.character(temp$V1),ranges=IRanges(temp$V2,temp$V3),strand='*')
+}
+
 if(!interactive()) {
   args <- commandArgs(T)
   bamfile <- if(is.na(args[1])) "mapped_reads.bam" else args[1]
@@ -15,7 +21,7 @@ if( is.null(bamfile) || is.null(peakfile) ) {
 }
 
 pets <- readInBamFile(bamfile)
-peaks <- read.narrow.peak.file(peakfile)
+peaks <- read.bed.file(peakfile)
 
 both.mapped <- !is.na(pets@pos) & !is.na(pets@mpos)
 
@@ -36,7 +42,7 @@ p <- peaks
 mcols(p)[,"counts"] <- rep(0,length(p))
 mcols(p)[,"counts"][as.integer(names(total))] <- as.vector(total)
 
-write.table(as.data.frame(p)[,c(1,2,3,12)],file=peakcountsfile,sep='\t',col.names = F,row.names = F,quote=F)
+write.table(as.data.frame(p)[,c(1,2,3,4)],file=peakcountsfile,sep='\t',col.names = F,row.names = F,quote=F)
 
 l <- list()
 qof <- queryHits(of)
