@@ -33,10 +33,13 @@ i2 <- convert.to.factor(intcounts,4:6,f)
 p <- intcounts[i1 != i2,]
 
 if( !interactive() ){
+  
+  cat("Running hypergeometric test...\n")
   hyperg <- estimate.hypergeometric.pvalue(p,depth)
   #bayesps <- estimate.per.sample.bayesian.probability(p,depth)
   
-  gbayes.m <- estimate.global.bayesian.mixture(p,depth)
+  cat("Running two-component Bayesian mixture model...\n")
+  gbayes.m <- estimate.global.bayesian.mixture(p,depth,show.progress=T)
   gbayesp <- extract.global.bayesian.prob(gbayes.m)
   
   #m <- cbind(p,hyperg,bayesps,gbayesp)
