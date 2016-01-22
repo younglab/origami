@@ -1,4 +1,6 @@
-estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruning=NULL,with.distance.weight=F,no.depth=F) {
+library(utils)
+
+estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruning=NULL,with.distance.weight=F,no.depth=F,show.progress=F) {
   S <- nrow(ints)
   
   d <- GRanges(seqnames=as.character(depth$V1),ranges=IRanges(depth$V2,depth$V3),strand='*')
@@ -18,10 +20,13 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruni
   lambda1 <- c(5)
   hsd0 <- hsd1 <- sd(counts)
   p1 <- c(.5)
-  a0 <- c(1)
-  b0 <- c(1)
-  a1 <- c(1)
-  b1 <- c(1)
+  #a0 <- c(1)
+  #b0 <- c(1)
+  #a1 <- c(1)
+  #b1 <- c(1)
+  
+  if(show.progress) pb <- txtProgressBar()
+    
   
   f <- function(p,h1,h0) p*dpois(counts,h1)/rowSums(cbind(p*dpois(counts,h1),(1-p)*dpois(counts,h0)))
   
@@ -42,9 +47,9 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruni
     r <- sum(counts[vz==0])
     #print(r)
    # print((a[i]*lambda0[i]+sum(vz==0)*r)/(a[i]+sum(vz)))
-    while(l0 <= 0 ) l0 <- rgamma(1,a0[i]+r,b0[i]+sum(vz==0))
-    a0[i+1] <- a0[i]+r
-    b0[i+1] <- b0[i]+sum(vz==0)
+    while(l0 <= 0 ) l0 <- rgamma(1,r,sum(vz==0))
+    #a0[i+1] <- a0[i]+r
+    #b0[i+1] <- b0[i]+sum(vz==0)
 #    print(l0)
     l1 <- l0
     r <- sum(counts[vz==1])
@@ -52,20 +57,22 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruni
     
     #print(c(a1[i]+r,b1[i]+sum(vz==1)))
     while(l1 <= l0 ) {
-      l1 <- rgamma(1,a1[i]+r,b1[i]+sum(vz==1))
+      l1 <- rgamma(1,r,sum(vz==1))
 
-#      print(c(l0,l1))
+      #print(c(l0,l1))
     }
-    a1[i+1] <- a1[i]+r
-    b1[i+1] <- b1[i]+sum(vz==1)
+    #a1[i+1] <- a1[i]+r
+    #b1[i+1] <- b1[i]+sum(vz==1)
     
     
     lambda0[i+1] <- l0
     lambda1[i+1] <- l1
     #print('---')
+    if(show.progress) setTxtProgressBar(pb,i/N)
   }
   
-  list(s=l,l0=lambda0,l1=lambda1,a0=a0,b0=b0,a1=a1,b1=b1)
+  if(show.progress) close(pb)
+  list(s=l,l0=lambda0,l1=lambda1)#,a0=a0,b0=b0,a1=a1,b1=b1)
 }
 
 extract.global.bayesian.prob <- function(model) {
