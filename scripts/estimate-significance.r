@@ -1,3 +1,6 @@
+library(compiler)
+enableJIT(3) ## enable JIT compilation
+
 source("~/dsday/origami/scripts/hypergeometric-test.r")
 #source("~/dsday/origami/scripts/per-sample-bayesian.r")
 source("~/dsday/origami/scripts/estimate-global-bayesian-mixture.r")
