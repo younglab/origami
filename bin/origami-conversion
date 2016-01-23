@@ -31,8 +31,21 @@ sub tobedpe {
   }
 }
 
+sub towashu {
+  my $c = $_[0];
+  while(<F>) {
+    chomp;
+    my @arr = split /,/;
+  
+    next unless $arr[0] eq $arr[3]; # Remove interchromosomal interactions
+    next if $arr[0] =~ /chrM/; # the browser doesn't like chrM
+  
+    print "$arr[0]:$arr[1]-$arr[2]\t$arr[3]:$arr[4]-$arr[5]\t$arr[5+$c]\n";
+  }
+}
+
 if( $#ARGV < 2 ) {
-  die "origami-conversion <bed/bedpe> <results file> <score column>";
+  die "origami-conversion <bed/bedpe/washu> <results file> <score column>";
 }
 
 my $option = $ARGV[0];
@@ -48,6 +61,7 @@ open(F,"$file") or die "Cannot open $!";
 switch($option) {
   case "bed"    { tobed($column); }
   case "bedpe"  { tobedpe($column); }
+  case "washu"  { towashu($column); }
   else          { print "Invalid option: $option\n"; }
 }
 close(F);
