@@ -1,20 +1,24 @@
 library(compiler)
 enableJIT(3) ## enable JIT compilation
 
-source("~/dsday/origami/scripts/hypergeometric-test.r")
-#source("~/dsday/origami/scripts/per-sample-bayesian.r")
-source("~/dsday/origami/scripts/estimate-global-bayesian-mixture.r")
-
-peakcounts <- "peak-counts.txt"
-intcounts <- "int-counts.txt"
-outfile <- "results.csv"
-
 if( !interactive() ) {
   args <- commandArgs(T)
-  if( !is.na(args[1])) peakcounts <- args[1]
-  if( !is.na(args[2])) intcounts <- args[2]
-  if( !is.na(args[3])) outfile <- args[3]
+  peakcounts <- if( !is.na(args[1])) args[1] else "peak-counts.txt"
+  intcounts <- if( !is.na(args[2])) args[2] else "int-counts.txt"
+  outfile <- if( !is.na(args[3])) args[3] else "results.csv"
+  
+  args <- commandArgs()
+  
+  f <- sub("--file=","",args[grep("--file=",args)])
+  
+  dbase <- dirname(f)
 }
+
+source(paste(dbase,"hypergeometric-test.r",sep='/'))
+#source("~/dsday/origami/scripts/per-sample-bayesian.r")
+source(paste(dbase,"estimate-global-bayesian-mixture.r",sep='/'))
+
+
 
 convert.to.factor <- function(pos,idx,l=NULL) {
   d <- pos[,idx]
