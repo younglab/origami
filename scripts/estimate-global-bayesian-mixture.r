@@ -54,9 +54,8 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruni
     l1 <- l0
     r <- sum(counts[vz==1])
 
-    while(l1 <= l0 ) {
-      l1 <- rgamma(1,r,sum(vz==1))
-    }
+    l1x <- rgamma(1,r,sum(vz==1))
+    l1 <- max(l1,l1x)
     
     lambda0[i+1] <- l0
     lambda1[i+1] <- l1
