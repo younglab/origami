@@ -1,6 +1,7 @@
 library(utils)
+library(matrixStats)
 
-estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruning=NULL,with.distance.weight=F,no.depth=F,show.progress=F) {
+estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruning=NULL,with.distance.weight=F,no.depth=F,multiply=F,show.progress=F) {
   S <- nrow(ints)
   
   d <- GRanges(seqnames=as.character(depth$V1),ranges=IRanges(depth$V2,depth$V3),strand='*')
@@ -13,8 +14,13 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruni
   d <- depth[,4]
   
   #mdepth <- mean(apply(cbind(m1,m2),1,function(v) sum(d[v])))
-  sdepth <- rowSums(cbind(d[m1],d[m2]))
-  msdepth <- mean(sdepth)
+  if(!multiply) {
+    sdepth <- rowSums(cbind(d[m1],d[m2]))
+    msdepth <- mean(sdepth)
+  } else {
+    sdepth <- rowProds(cbind(d[m1],d[m2]))
+    msdepth <- mean(sdepth)
+  }
   
   l <- lapply(1:nrow(ints),function(i) list(z=c(),p1=c(.5)))
   pp <- rep(.5,nrow(ints))
