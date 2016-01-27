@@ -22,7 +22,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruni
     msdepth <- mean(sdepth)
   }
   
-  print(msdepth)
+  print(c(msdepth,range(sdepth)))
   
   l <- lapply(1:S,function(i) list(z=rep(NA_integer_,N),p1=c(.5,rep(NA_real_,N))))
   pp <- rep(.5,S)
@@ -71,6 +71,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruni
     lambda0[i+1] <- l0
     lambda1[i+1] <- l1
 
+    print(c(l0,l1))
     if(show.progress) setTxtProgressBar(pb,i/N)
   }
   
