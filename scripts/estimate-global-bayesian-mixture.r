@@ -22,11 +22,15 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruni
     msdepth <- mean(sdepth)
   }
   
-  l <- lapply(1:nrow(ints),function(i) list(z=c(),p1=c(.5)))
-  pp <- rep(.5,nrow(ints))
+  print(msdepth)
   
-  lambda0 <- c(1)
-  lambda1 <- c(5)
+  l <- lapply(1:S,function(i) list(z=rep(NA_integer_,N),p1=c(.5,rep(NA_real_,N))))
+  pp <- rep(.5,S)
+  
+  lambda0 <- c(1,rep(NA_real_,N))
+  lambda1 <- c(5,rep(NA_real_,N))
+  
+  totcounts <- sum(counts)
 
   
   if(show.progress) pb <- txtProgressBar()
@@ -36,7 +40,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruni
     g1 <- p*dpois(counts,h1)
     g2 <- (1-p) * dpois(counts,h0)
     
-    g1/rowSums(cbind(g1,g2))
+    g1/rowSums(cbind(g1,g2)) 
   }
   
   for( i in 1:N ) {
@@ -44,7 +48,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruni
     if(any(is.na(vp))) vp[is.na(vp)] <- 0 ### need  more intelligent way to handle this
     vz <- rbinom(S,1,vp)
 
-    pp <- if( no.depth ) rbeta(nrow(ints),1+vz,1+(1-vz)) else rbeta(nrow(ints),sdepth+vz,msdepth+(1-vz))
+    pp <- if( no.depth ) rbeta(S,1+vz,1+(1-vz)) else rbeta(S,sdepth+vz,msdepth+(1-vz))
     
     l <- mapply(function(lx,z,p){
       lx$z[i] <- z
@@ -54,13 +58,14 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruni
     
     l0 <- 0
     r <- sum(counts[vz==0])
+    n <- sum(vz==0)
     
-    while(l0 <= 0 ) l0 <- rgamma(1,r,sum(vz==0))
+    while(l0 <= 0 ) l0 <- rgamma(1,r,n)
 
     l1 <- l0
-    r <- sum(counts[vz==1])
+    #r <- totcounts - r #sum(counts[vz==1])
 
-    l1x <- rgamma(1,r,sum(vz==1))
+    l1x <- rgamma(1,totcounts-r,S-n)#sum(vz==1))
     l1 <- max(l1,l1x)
     
     lambda0[i+1] <- l0
