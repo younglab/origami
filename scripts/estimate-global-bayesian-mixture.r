@@ -29,6 +29,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1000,burnin=NULL,pruni
   
   lambda0 <- c(1,rep(NA_real_,N))
   lambda1 <- c(5,rep(NA_real_,N))
+
   
   totcounts <- sum(counts)
 
