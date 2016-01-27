@@ -56,4 +56,5 @@ if( !interactive() ){
   colnames(m) <- c("chromosome1","start1","end1","chromosome2","start2","end2","PET Count","Hypergeometric p-value","Bayes global mixture posterior probability")
   
   write.csv(m,file=outfile,row.names=F,quote=F)
+  save(gbayes.m,file="model-data.Rdata")
 }
