@@ -37,15 +37,19 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,prunin
   if(show.progress) pb <- txtProgressBar()
     
   
-  f <- function(p,h1,h0) {
-    g1 <- p*dpois(counts,h1)
-    g2 <- (1-p) * dpois(counts,h0)
-    
-    g1/rowSums(cbind(g1,g2)) 
-  }
+  #f <- function(p,h1,h0) {
+  #  g1 <- p*dpois(counts,h1)
+  #  g2 <- (1-p) * dpois(counts,h0)
+  #  
+  #  g1/rowSums(cbind(g1,g2)) 
+  #}
   
   for( i in 1:N ) {
-    vp <- f(pp,lambda1[i],lambda0[i])
+    #vp <- f(pp,lambda1[i],lambda0[i])
+    g1 <- pp*dpois(counts,lambda1[i])
+    g2 <- (1-pp) * dpois(counts,lambda0[i])
+    
+    vp <- g1/rowSums(cbind(g1,g2)) 
     if(any(is.na(vp))) vp[is.na(vp)] <- 0 ### need  more intelligent way to handle this
     vz <- rbinom(S,1,vp)
 
