@@ -20,6 +20,15 @@ verbose() {
 	fi
 }
 
+verbosecmd() {
+  if [ "$VERBOSE" = on ]
+  then
+    NOWTIME=$(date)
+    echo "[$NOWTIME] $@"
+  fi
+  eval "$@"
+}
+
 dispatch() {
         if [ "$PARALLEL" = on ]
         then
@@ -35,6 +44,9 @@ helpmenu() {
     echo $1
   fi
   echo "origami.sh [options] <bowtie index> <first FASTQ> <second FASTQ>"
+  echo "  For the FASTQ files, they may be either in plan text (no compression), gzip (.gz),"
+  echo "    or bzip2 (.bz2) format (automatically deteced by file suffix)"
+  echo ""
   echo "  -o,--output= output directory (default output)"
   echo "  -h Help menu"
   echo "  -v verbose mode"
@@ -103,18 +115,8 @@ mkdir $OUTPUTDIR/tmp
 verbose "Creating logs directory"
 mkdir $OUTPUTDIR/logs
 
-### handle zip status
-#if [[ $LEFTREADS =~ $BZPOSTFIX ]]
-#then
-#	dispatch "bzcat $LEFTREADS > $OUTPUTDIR/tmp/left_unzip.fq"
-#	LEFTREADS=$OUTPUTDIR/tmp/left_unzip.fq
-#fi
-
-#if [[ $RIGHTREADS =~ $BZPOSTFIX ]]
-#then
-#        dispatch "bzcat $RIGHTREADS > $OUTPUTDIR/tmp/right_unzip.fq"
-#        RIGHTREADS=$OUTPUTDIR/tmp/right_unzip.fq
-#fi
+## Get file suffix (assumes same suffix for both left and right files)
+FILESUFFIX=${LEFTREADS##*.}
 
 #wait
 
@@ -126,12 +128,25 @@ then #&& $BINDIR/adapter_trim.sh $OUTPUTDIR $PARALLEL $SPLITNUM $LEFTREADS $RIGH
 
   if [ $PARALLEL = "on" ]
   then
-    # need to generalize this
-    dispatch "bzcat $LEFTREADS | sed -e 's/\/[0-9];[0-9]//' > $OUTPUTDIR/tmp/left_reads.fq"
-    dispatch "bzcat $RIGHTREADS | sed -e 's/\/[0-9];[0-9]//' > $OUTPUTDIR/tmp/right_reads.fq"
+    case "$FILESUFFIX" in
+      gz)
+        CATFUNC=zcat
+        ;;
+      bz2)
+        CATFUNC=bzcat
+        ;;
+      *)
+        CATFUNC=cat
+        ;;
+    esac
+  
+    dispatch "$CATFUNC $LEFTREADS | sed -e 's/\/[0-9];[0-9]//' > $OUTPUTDIR/tmp/left_reads.fq"
+    
+    dispatch "$CATFUNC $RIGHTREADS | sed -e 's/\/[0-9];[0-9]//' > $OUTPUTDIR/tmp/right_reads.fq"
   
     wait 
     dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/leftreads"
+    
     dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/right_reads.fq $OUTPUTDIR/tmp/rightreads"
   
     wait
@@ -170,14 +185,30 @@ then #&& $BINDIR/adapter_trim.sh $OUTPUTDIR $PARALLEL $SPLITNUM $LEFTREADS $RIGH
 
   else
 
-    dispatch "sed -e 's/\/[0-9];[0-9]//' $LEFTREADS > $OUTPUTDIR/tmp/left_reads.fq"
-    dispatch "sed -e 's/\/[0-9];[0-9]//' $RIGHTREADS > $OUTPUTDIR/tmp/right_reads.fq"
+    case "$FILESUFFIX" in
+      gz)
+        CATFUNC=zcat
+        ;;
+      bz2)
+        CATFUNC=bzcat
+        ;;
+      *)
+        CATFUNC=cat
+        ;;
+    esac
+    
+    verbosecmd "$CATFUNC $LEFTREADS | sed -e 's/\/[0-9];[0-9]//' - > $OUTPUTDIR/tmp/left_reads.fq"
+    
+    verbosecmd "$CATFUNC $RIGHTREADS | sed -e 's/\/[0-9];[0-9]//' - > $OUTPUTDIR/tmp/right_reads.fq"
 
     wait
 
     dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward="ACGCGATATCTTATCTGACT" -a reverse="AGTCAGATAAGATATCGCGT" -o $OUTPUTDIR/tmp/l_t1.fq --untrimmed-output $OUTPUTDIR/tmp/l_nt1.fq -p $OUTPUTDIR/tmp/r_t1.fq --untrimmed-paired-output $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+    
     wait
+    
     dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward="ACGCGATATCTTATCTGACT" -a reverse="AGTCAGATAAGATATCGCGT" -o $OUTPUTDIR/tmp/r_t2.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt2.fq -p $OUTPUTDIR/tmp/l_t2.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt2.fq $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/l_nt1.fq
+    
     dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward="ACGCGATATCTTATCTGACT" -a reverse="AGTCAGATAAGATATCGCGT" -o $OUTPUTDIR/tmp/r_t3.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt3.fq -p $OUTPUTDIR/tmp/l_t3.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt3.fq $OUTPUTDIR/tmp/r_t1.fq $OUTPUTDIR/tmp/l_t1.fq
 
     wait
