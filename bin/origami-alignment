@@ -267,7 +267,13 @@ fi
 wait #finish all remaining processes
 
 echo "Calling peaks"
-$BINDIR/peak-calling.sh $OUTPUTDIR
+
+bedtools bamtobed -i $OUTPUTDIR/mapped_reads.bam > $OUTPUTDIR/tmp/reads.bed
+
+macs2 callpeak -t $OUTPUTDIR/tmp/reads.bed -n peaks --nomodel --shift 100 --outdir $OUTPUTDIR
+
+rm $OUTPUTDIR/tmp/reads.bed
+
 
 #echo "Finding links"
 
