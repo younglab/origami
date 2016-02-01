@@ -53,7 +53,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,prunin
     if(any(is.na(vp))) vp[is.na(vp)] <- 0 ### need  more intelligent way to handle this
     vz <- rbinom(S,1,vp)
 
-    pp <- if( no.depth ) rbeta(S,1+vz,1+(1-vz)) else rbeta(S,sdepth+vz,msdepth+(1-vz))
+    pp <- if( no.depth ) rbeta(S,1+vz,1+(1-vz)) else rbeta(S,sdepth/msdepth+vz,msdepth/msdepth+(1-vz))
     
     l <- mapply(function(lx,z,p){
       lx$z[i] <- z
