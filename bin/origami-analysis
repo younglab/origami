@@ -17,12 +17,17 @@ echo "Identifying PET counts in peaks and interactions..."
 
 cut -f 1,2,3 $INPUTFILE | sort -k 1,1 -k 2,2n > $TMPFILE
 
-bedtools coverage -counts -abam $READSFILE -b $TMPFILE > $PREFIX-raw-counts.out
+if [ ! -e "$PREFIX-raw-counts.out" ];
+then
+  bedtools coverage -counts -abam $READSFILE -b $TMPFILE > $PREFIX-raw-counts.out
+fi
 
+if [ ! -e "$PREFIX-raw-int-counts.txt" ];
+then
+  bedtools pairtobed -bedpe -type both -abam $READSFILE -b $TMPFILE > $PREFIX-raw-interactions.out
 
-bedtools pairtobed -bedpe -type both -abam $READSFILE -b $TMPFILE > $PREFIX-raw-interactions.out
-
-$SCRIPTDIR/estimate-counts.pl $PREFIX-raw-interactions.out > $PREFIX-raw-int-counts.txt
+  $SCRIPTDIR/estimate-counts.pl $PREFIX-raw-interactions.out > $PREFIX-raw-int-counts.txt
+fi
 
 rm $TMPFILE 
 

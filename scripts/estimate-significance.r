@@ -49,10 +49,10 @@ if( !interactive() ){
   gbayesp <- extract.global.bayesian.prob(gbayes.m)
   
   gbayesnd.m <- estimate.global.bayesian.no.depth.mixture(p,depth,show.progress=T)
-  gbayesndp <- xtract.global.bayesian.prob(gbayesnd.m)
+  gbayesndp <- extract.global.bayesian.prob(gbayesnd.m)
   
   gbayesgp.m <- estimate.global.bayesian.grouped.mixture(p,depth,show.progress=T)
-  gbayesgpp <- xtract.global.bayesian.prob(gbayesgp.m)
+  gbayesgpp <- extract.global.bayesian.prob(gbayesgp.m)
   
   m <- cbind(p,hyperg,gbayesp,gbayesndp,gbayesgpp)
   
