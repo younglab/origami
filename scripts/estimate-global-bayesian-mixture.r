@@ -1,7 +1,7 @@
 library(utils)
 library(matrixStats)
 
-estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,pruning=NULL,with.distance.weight=F,no.depth=F,multiply=T,show.progress=F) {
+estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,pruning=NULL,with.distance.weight=F,no.depth=T,multiply=T,show.progress=F) {
   S <- nrow(ints)
   
   d <- GRanges(seqnames=as.character(depth$V1),ranges=IRanges(depth$V2,depth$V3),strand='*')
@@ -13,7 +13,6 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,prunin
   counts <- ints[,7]
   d <- depth[,4]
   
-  #mdepth <- mean(apply(cbind(m1,m2),1,function(v) sum(d[v])))
   if(!multiply) {
     sdepth <- rowSums(cbind(d[m1],d[m2]))
     msdepth <- mean(sdepth)
@@ -65,7 +64,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,prunin
     r <- sum(counts[vz==0])
     n <- sum(vz==0)
     
-    while(l0 <= 0 ) l0 <- rgamma(1,r,n)
+    l0 <- rgamma(1,r,n)
 
     l1 <- l0
     #r <- totcounts - r #sum(counts[vz==1])
