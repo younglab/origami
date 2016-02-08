@@ -6,7 +6,6 @@ SCRIPTDIR=$BASEDIR/../scripts
 PEAKCOUNTFILE=raw-counts.out
 INTCOUNTFILE=raw-interactions.out
 TMPFILE=$RANDOM.peaks.bed
-TMPBAMFILE=$RANDOM.bam
 TMPBAMPREFIX=bam$RANDOM.prefix
 
 INPUTFILE=$1
@@ -24,7 +23,6 @@ cut -f 1,2,3 $INPUTFILE | sort -k 1,1 -k 2,2n > $TMPFILE
 
 bedtools coverage -counts -abam mapped_reads.bam -b $TMPFILE > $PREFIX-raw-counts.out
 
-rm $TMPBAMFILE
 
 bedtools pairtobed -bedpe -type both -abam mapped_reads.bam -b $TMPFILE > $PREFIX-raw-interactions.out
 

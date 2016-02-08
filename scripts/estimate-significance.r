@@ -6,6 +6,7 @@ if( !interactive() ) {
   peakcounts <- if( !is.na(args[1])) args[1] else "peak-counts.txt"
   intcounts <- if( !is.na(args[2])) args[2] else "int-counts.txt"
   outfile <- if( !is.na(args[3])) args[3] else "results.csv"
+  modelfile <- if( !is.na(args[4])) args[4] else "model-data.Rdata"
   
   args <- commandArgs()
   
@@ -56,5 +57,5 @@ if( !interactive() ){
   colnames(m) <- c("chromosome1","start1","end1","chromosome2","start2","end2","PET Count","Hypergeometric p-value","Bayes global mixture posterior probability")
   
   write.csv(m,file=outfile,row.names=F,quote=F)
-  save(gbayes.m,file="model-data.Rdata")
+  save(gbayes.m,file=modelfile)
 }
