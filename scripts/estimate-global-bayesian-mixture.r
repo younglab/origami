@@ -16,15 +16,15 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,prunin
   
   if(!multiply) {
     sdepth <- rowSums(cbind(d[m1],d[m2]))
-    msdepth <- mean(sdepth)
+    msdepth <- median(sdepth)
   } else {
     sdepth <- rowProds(cbind(d[m1],d[m2]))
-    msdepth <- mean(sdepth)
+    msdepth <- median(sdepth)
   }
   
   print(c(msdepth,range(sdepth)))
   
-  l <- lapply(1:S,function(i) list(z=rep(NA_integer_,N),p1=c(.5,rep(NA_real_,N))))
+  l <- lapply(1:S,function(i) list(z=rep(NA_integer_,N),p1=c(.5,rep(NA_real_,N)),mp=rep(NA_real_,N)))
   pp <- rep(.5,S)
   
   lambda0 <- c(1,rep(NA_real_,N))
@@ -53,13 +53,14 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,prunin
     if(any(is.na(vp))) vp[is.na(vp)] <- 0 ### need  more intelligent way to handle this
     vz <- rbinom(S,1,vp)
 
-    pp <- if( no.depth ) rbeta(S,1+vz,1+(1-vz)) else rbeta(S,sdepth/msdepth+vz,msdepth/msdepth+(1-vz))
+    pp <- if( no.depth ) rbeta(S,1+vz,1+(1-vz)) else rbeta(S,sdepth/msdepth+vz,1+(1-vz)) #msdepth/msdepth=1
     
-    l <- mapply(function(lx,z,p){
+    l <- mapply(function(lx,z,mp,p){
       lx$z[i] <- z
+      lx$mp[i] <- mp
       lx$p1[i+1] <- p
       lx
-    },l,as.list(vz),as.list(pp),SIMPLIFY=F)
+    },l,as.list(vz),as.list(vp),as.list(pp),SIMPLIFY=F)
     
     l0 <- 0
     r <- sum(counts[vz==0])
@@ -82,7 +83,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,prunin
   
   if(show.progress) close(pb)
   ret <- list(s=l,l0=lambda0,l1=lambda1)
-  if(!is.null(burnin) && is.integer(burnin) && burnin > 1) {
+  if(!is.null(burnin) && is.integer(burnin) && burnin > 0) {
     orig <- ret
     idx <- -(1:burnin)
     ret <- lapply(ret,function(v) v[idx])
