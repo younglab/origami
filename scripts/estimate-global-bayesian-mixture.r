@@ -1,5 +1,6 @@
-library(utils)
-library(matrixStats)
+library(GenomicRanges,quietly = !interactive())
+library(utils,quietly = !interactive())
+library(matrixStats,quietly = !interactive())
 
 estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,pruning=NULL,with.distance.weight=F,no.depth=T,multiply=T,show.progress=F) {
   S <- nrow(ints)

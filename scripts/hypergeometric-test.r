@@ -1,4 +1,4 @@
-library(GenomicRanges)
+library(GenomicRanges,quietly = !interactive())
 
 estimate.hypergeometric.pvalue <- function(ints,depth) {
   d <- GRanges(seqnames=as.character(depth$V1),ranges=IRanges(depth$V2,depth$V3),strand='*')

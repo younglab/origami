@@ -1,4 +1,4 @@
-library(compiler)
+library(compiler,quietly = !interactive())
 invisible(enableJIT(3)) ## enable JIT compilation
 
 if( !interactive() ) {
