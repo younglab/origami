@@ -8,23 +8,19 @@ INTCOUNTFILE=raw-interactions.out
 TMPFILE=$RANDOM.peaks.bed
 TMPBAMPREFIX=bam$RANDOM.prefix
 
-INPUTFILE=$1
-PREFIX=$2
+READSFILE=$1
+INPUTFILE=$2
+PREFIX=$3
 
 
 echo "Identifying PET counts in peaks and interactions..."
 
 cut -f 1,2,3 $INPUTFILE | sort -k 1,1 -k 2,2n > $TMPFILE
 
-
-## workaround -- bedtools intersect with -sorted won't take BAM with unmapped reads
-#samtools sort -Obam -T$TMPBAMPREFIX mapped_reads.bam > $TMPBAMFILE
-#samtools view -hb -F 0x4 $TMPBAMFILE |  bedtools intersect -c -sorted -g $CHROMLIST -a $TMPFILE -b - > $PREFIX-raw-counts.out
-
-bedtools coverage -counts -abam mapped_reads.bam -b $TMPFILE > $PREFIX-raw-counts.out
+bedtools coverage -counts -abam $READSFILE -b $TMPFILE > $PREFIX-raw-counts.out
 
 
-bedtools pairtobed -bedpe -type both -abam mapped_reads.bam -b $TMPFILE > $PREFIX-raw-interactions.out
+bedtools pairtobed -bedpe -type both -abam $READSFILE -b $TMPFILE > $PREFIX-raw-interactions.out
 
 $SCRIPTDIR/estimate-counts.pl $PREFIX-raw-interactions.out > $PREFIX-raw-int-counts.txt
 

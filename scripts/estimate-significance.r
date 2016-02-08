@@ -16,7 +16,6 @@ if( !interactive() ) {
 }
 
 source(paste(dbase,"hypergeometric-test.r",sep='/'))
-#source("~/dsday/origami/scripts/per-sample-bayesian.r")
 source(paste(dbase,"estimate-global-bayesian-mixture.r",sep='/'))
 
 
@@ -44,18 +43,23 @@ if( !interactive() ){
   
   cat("Running hypergeometric test...\n")
   hyperg <- estimate.hypergeometric.pvalue(p,depth)
-  #bayesps <- estimate.per.sample.bayesian.probability(p,depth)
-  
+
   cat("Running two-component Bayesian mixture model...\n")
   gbayes.m <- estimate.global.bayesian.mixture(p,depth,show.progress=T)
   gbayesp <- extract.global.bayesian.prob(gbayes.m)
   
-  #m <- cbind(p,hyperg,bayesps,gbayesp)
-  m <- cbind(p,hyperg,gbayesp)
+  gbayesnd.m <- estimate.global.bayesian.no.depth.mixture(p,depth,show.progress=T)
+  gbayesndp <- xtract.global.bayesian.prob(gbayesnd.m)
   
-  #colnames(m) <- c("chromosome1","start1","end1","chromosome2","start2","end2","PET Count","Hypergeometric p-value","Bayes posterior probability 1","Bayes global mixture posterior probability")
-  colnames(m) <- c("chromosome1","start1","end1","chromosome2","start2","end2","PET Count","Hypergeometric p-value","Bayes global mixture posterior probability")
+  gbayesgp.m <- estimate.global.bayesian.grouped.mixture(p,depth,show.progress=T)
+  gbayesgpp <- xtract.global.bayesian.prob(gbayesgp.m)
+  
+  m <- cbind(p,hyperg,gbayesp,gbayesndp,gbayesgpp)
+  
+  colnames(m) <- c("chromosome1","start1","end1","chromosome2","start2","end2","PET Count","Hypergeometric p-value",
+                   "Bayes global mixture posterior probability","Bayes No Depth Mixture Posterior Probability",
+                   "Bayes Grouped Mictured Posterior Probability")
   
   write.csv(m,file=outfile,row.names=F,quote=F)
-  save(gbayes.m,file=modelfile)
+  save(hyperg,gbayes.m,gbayesnd.m,gbayesgp.m,file=modelfile)
 }
