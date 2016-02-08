@@ -10,6 +10,7 @@ TMPBAMFILE=$RANDOM.bam
 TMPBAMPREFIX=bam$RANDOM.prefix
 
 INPUTFILE=$1
+PREFIX=$2
 
 
 echo "Identifying PET counts in peaks and interactions..."
@@ -18,19 +19,19 @@ cut -f 1,2,3 $INPUTFILE | sort -k 1,1 -k 2,2n > $TMPFILE
 
 
 ## workaround -- bedtools intersect with -sorted won't take BAM with unmapped reads
-samtools sort -Obam -T$TMPBAMPREFIX mapped_reads.bam > $TMPBAMFILE
-samtools view -hb -F 0x4 $TMPBAMFILE |  bedtools intersect -c -sorted -a $TMPFILE -b - > $2-raw-counts.out
+#samtools sort -Obam -T$TMPBAMPREFIX mapped_reads.bam > $TMPBAMFILE
+#samtools view -hb -F 0x4 $TMPBAMFILE |  bedtools intersect -c -sorted -g $CHROMLIST -a $TMPFILE -b - > $PREFIX-raw-counts.out
+
+bedtools coverage -counts -abam mapped_reads.bam -b $TMPFILE > $PREFIX-raw-counts.out
 
 rm $TMPBAMFILE
 
-bedtools pairtobed -bedpe -type both -abam mapped_reads.bam -b $TMPFILE > $2-raw-interactions.out
+bedtools pairtobed -bedpe -type both -abam mapped_reads.bam -b $TMPFILE > $PREFIX-raw-interactions.out
 
-$SCRIPTDIR/estimate-counts.pl $2-raw-interactions.out > $2-raw-int-counts.txt
+$SCRIPTDIR/estimate-counts.pl $PREFIX-raw-interactions.out > $PREFIX-raw-int-counts.txt
 
 rm $TMPFILE 
 
-#Rscript $SCRIPTDIR/estimate-interaction-counts.r 
-
 echo "Estimating interaction belief..."
 
-Rscript $SCRIPTDIR/estimate-significance.r $2-raw-counts.out $2-raw-int-counts.txt $2-results.csv $2-model-data.Rdata
+Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata
