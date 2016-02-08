@@ -1,5 +1,5 @@
 library(compiler)
-enableJIT(3) ## enable JIT compilation
+invisible(enableJIT(3)) ## enable JIT compilation
 
 if( !interactive() ) {
   args <- commandArgs(T)
