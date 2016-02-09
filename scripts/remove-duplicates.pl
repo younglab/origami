@@ -12,8 +12,8 @@ my $line2;
 
 while(<F>) {
   $line1 = $_;
-  print;
   last unless /^@/;
+  print;
 }
 
 chomp $line1;
@@ -30,10 +30,12 @@ while(!eof(F)) {
     print "$line1\n$line2\n";
   } else {
     $ex++;
-    print STDERR "Excluded $a1[0]:$a2[0]\n";
+    #print STDERR "Excluded $a1[0]:$a2[0]\n";
   }
   $line1 = <F>;
   $line2 = <F>;
+  chomp $line1;
+  chomp $line2;
 }
 
 print STDERR "Processed $n PETs, excluded $ex PETs because of duplication\n";
