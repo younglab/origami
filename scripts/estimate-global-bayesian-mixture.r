@@ -35,14 +35,6 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,prunin
 
   
   if(show.progress) pb <- txtProgressBar()
-    
-  
-  #f <- function(p,h1,h0) {
-  #  g1 <- p*dpois(counts,h1)
-  #  g2 <- (1-p) * dpois(counts,h0)
-  #  
-  #  g1/rowSums(cbind(g1,g2)) 
-  #}
   
   for( i in 1:N ) {
     #vp <- f(pp,lambda1[i],lambda0[i])
@@ -50,7 +42,14 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,prunin
     g2 <- (1-pp) * dpois(counts,lambda0[i])
     
     vp <- g1/rowSums(cbind(g1,g2)) 
-    if(any(is.na(vp))) vp[is.na(vp)] <- 0 ### need  more intelligent way to handle this
+
+    # Sometimes the counts value in dpois is so extreme the loss of precision causes the value to be 0, need to correct for this
+    # assign to cluster 1 if above or cluster 0 if belive lambda1 (otherwise should be normally assigned)
+    if(any(is.na(vp))) {
+      b<- is.na(vp)
+      vp[b] <- as.integer(counts[b]>=lambda1[i])
+    }
+      
     vz <- rbinom(S,1,vp)
 
     pp <- rbeta(S,sdepth/msdepth+vz,1+(1-vz)) #msdepth/msdepth=1
@@ -128,20 +127,16 @@ estimate.global.bayesian.no.depth.mixture <- function(ints,depth,N=1100,burnin=1
   if(show.progress) pb <- txtProgressBar()
   
   
-  #f <- function(p,h1,h0) {
-  #  g1 <- p*dpois(counts,h1)
-  #  g2 <- (1-p) * dpois(counts,h0)
-  #  
-  #  g1/rowSums(cbind(g1,g2)) 
-  #}
-  
   for( i in 1:N ) {
     #vp <- f(pp,lambda1[i],lambda0[i])
     g1 <- pp*dpois(counts,lambda1[i])
     g2 <- (1-pp) * dpois(counts,lambda0[i])
     
     vp <- g1/rowSums(cbind(g1,g2)) 
-    if(any(is.na(vp))) vp[is.na(vp)] <- 0 ### need  more intelligent way to handle this
+    if(any(is.na(vp))) {
+      b<- is.na(vp)
+      vp[b] <- as.integer(counts[b]>=lambda1[i])
+    }    
     vz <- rbinom(S,1,vp)
     
     pp <- rbeta(S,1+vz,1+(1-vz)) 
@@ -217,14 +212,7 @@ estimate.global.bayesian.grouped.mixture <- function(ints,depth,N=1100,burnin=10
   
   
   if(show.progress) pb <- txtProgressBar()
-  
-  
-  #f <- function(p,h1,h0) {
-  #  g1 <- p*dpois(counts,h1)
-  #  g2 <- (1-p) * dpois(counts,h0)
-  #  
-  #  g1/rowSums(cbind(g1,g2)) 
-  #}
+
   
   for( i in 1:N ) {
     #vp <- f(pp,lambda1[i],lambda0[i])
@@ -232,7 +220,10 @@ estimate.global.bayesian.grouped.mixture <- function(ints,depth,N=1100,burnin=10
     g2 <- (1-pp[i]) * dpois(counts,lambda0[i])
     
     vp <- g1/rowSums(cbind(g1,g2)) 
-    if(any(is.na(vp))) vp[is.na(vp)] <- 0 ### need  more intelligent way to handle this
+    if(any(is.na(vp))) {
+      b<- is.na(vp)
+      vp[b] <- as.integer(counts[b]>=lambda1[i])
+    }
     vz <- rbinom(S,1,vp)
     
     ipos <- sum(vz)
