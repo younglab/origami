@@ -2,6 +2,7 @@
 
 BASEDIR=$(dirname $0)
 BINDIR=$BASEDIR/../bin
+SCRIPTDIR=$BASEDIR/../scripts
 OUTPUTDIR=output
 VERBOSE=off
 SKIP=on
@@ -289,11 +290,12 @@ then
   #wait
 
   rm $OUTPUTDIR/tmp/left_kept.sorted.bam $OUTPUTDIR/tmp/right_kept.sorted.bam
-  #rm $OUTPUTDIR/tmp/mapped_reads.bam
 
   #mv $OUTPUTDIR/tmp/left_kept.bam $OUTPUTDIR/left_kept.bam
   #mv $OUTPUTDIR/tmp/right_kept.bam $OUTPUTDIR/right_kept.bam
 fi
+
+$SCRIPTDIR/remove-duplicates.pl $OUTPUTDIR/mapped_reads.bam | samtools view -Sb > $OUTPUTDIR/mapped_reads.rmdup.bam
 
 wait #finish all remaining processes
 
@@ -305,9 +307,5 @@ macs2 callpeak -t $OUTPUTDIR/tmp/reads.bed -n peaks --nomodel --shift 100 --outd
 
 rm $OUTPUTDIR/tmp/reads.bed
 
-
-#echo "Finding links"
-
-#bedtools pairtobed -bedpe -type both -a $OUTPUTDIR/mapped_reads.bam -b $OUTPUTDIR/peaks_peaks.narrowPeak > $OUTPUTDIR/raw-links.out
 
 echo "Done"
