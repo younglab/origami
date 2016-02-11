@@ -116,13 +116,18 @@ mkdir $OUTPUTDIR/tmp
 verbose "Creating logs directory"
 mkdir $OUTPUTDIR/logs
 
+if [[ "$VERBOSE" != "on" ]] && [[ "$PARALLEL" == "on" ]];
+then
+  export BSUB_QUIET=Y
+fi
+
 ## Get file suffix (assumes same suffix for both left and right files)
 FILESUFFIX=${LEFTREADS##*.}
 
 #wait
 
-verbose "Removing adapter sequences on $LEFTREADS and $RIGHTREADS"
-if [ "$SKIP" = off -o ! -e "$OUTPUTDIR/mapped_reads.bam" ]
+echo "Removing adapter sequences on $LEFTREADS and $RIGHTREADS"
+if [[ "$SKIP" == "off" || ! -e "$OUTPUTDIR/mapped_reads.bam" ]];
 then #&& $BINDIR/adapter_trim.sh $OUTPUTDIR $PARALLEL $SPLITNUM $LEFTREADS $RIGHTREADS
 
   ## structure of script influenced by Diego's work
@@ -240,10 +245,10 @@ fi
 
 rm -f $OUTPUTDIR/tmp/left_unzip.fq  $OUTPUTDIR/tmp/right_unzip.fq
 
-verbose "Aligning reads"
-if [ "$SKIP" = off -o ! -e "$OUTPUTDIR/mapped_reads.bam" ] #&& $BINDIR/bowtie_align.sh $OUTPUTDIR $BOWTIEIDX $PARALLEL $SPLITNUM
+echo "Aligning reads"
+if [[ "$SKIP" == off || ! -e "$OUTPUTDIR/mapped_reads.bam" ]]; #&& $BINDIR/bowtie_align.sh $OUTPUTDIR $BOWTIEIDX $PARALLEL $SPLITNUM
 then
-  if [ $PARALLEL = "on" ]
+  if [ $PARALLEL == "on" ];
   then
     dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/left_kept.fq $OUTPUTDIR/tmp/leftkept"
     dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/right_kept.fq $OUTPUTDIR/tmp/rightkept"
