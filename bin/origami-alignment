@@ -10,6 +10,7 @@ PARALLEL=off
 SPLITNUM=4000000
 BZPOSTFIX="[.]bz2$"
 BOWTIEIDX=notafile
+KEEPTMP=no
 
 source $BINDIR/dispatch.sh
 
@@ -53,10 +54,11 @@ helpmenu() {
   echo "  -v verbose mode"
   echo "  -p parallel LSF mode (distributed bsub)"
   echo "  --splitnum=<NUM> Split reads into NUM for -p (default none)"
+  echo "  --keep-tmp Keep temporary directory (default is to remove it when finished)"
   echo "  --bowtieidx= Bowtie index (deprecated, inactive)"
 }
 
-TEMP=`getopt -o o::hvap -l output::,noskip,splitnum::,bowtieidx: -n 'origami' -- "$@"`
+TEMP=`getopt -o o::hvap -l output::,noskip,splitnum::,bowtieidx:,keep-tmp -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -89,6 +91,10 @@ while [ $# -ge 1 ]; do
 		--bowtieidx)
 		  echo "Deprecated option (does not do anything)"
 		  BOWTIEIDX=$2
+		  shift
+		  ;;
+		--keep-tmp)
+		  KEEPTMP=yes
 		  shift
 		  ;;
 	esac
@@ -239,8 +245,12 @@ then #&& $BINDIR/adapter_trim.sh $OUTPUTDIR $PARALLEL $SPLITNUM $LEFTREADS $RIGH
 
   wait
 
-  #rm -f $OUTPUTDIR/tmp/left_untrimmed.fq $OUTPUTDIR/tmp/right_untrimmed.fq
 fi
+
+## Keep untrimmed reads
+mv $OUTPUTDIR/tmp/left_untrimmed.fq.bz2 $OUTPUTDIR/.
+mv $OUTPUTDIR/tmp/right_untrimmed.fq.bz2 $OUTPUTDIR/.
+
 
 
 rm -f $OUTPUTDIR/tmp/left_unzip.fq  $OUTPUTDIR/tmp/right_unzip.fq
@@ -310,7 +320,11 @@ bedtools bamtobed -i $OUTPUTDIR/mapped_reads.bam > $OUTPUTDIR/tmp/reads.bed
 
 macs2 callpeak -t $OUTPUTDIR/tmp/reads.bed -n peaks --nomodel --shift 100 --outdir $OUTPUTDIR
 
-rm $OUTPUTDIR/tmp/reads.bed
+if [[ "$KEEPTMP" == "no" ]];
+then
+  echo "Cleaning up temporary directory"
+  rm -r $OUTPUTDIR/tmp
+fi
 
 
 echo "Done"
