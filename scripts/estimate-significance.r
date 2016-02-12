@@ -51,15 +51,11 @@ if( !interactive() ){
   gbayesnd.m <- estimate.global.bayesian.no.depth.mixture(p,depth,show.progress=T)
   gbayesndp <- extract.global.bayesian.prob(gbayesnd.m)
   
-  gbayesgp.m <- estimate.global.bayesian.grouped.mixture(p,depth,show.progress=T)
-  gbayesgpp <- extract.global.bayesian.prob(gbayesgp.m)
-  
-  m <- cbind(p,hyperg,gbayesp,gbayesndp,gbayesgpp)
+  m <- cbind(p,hyperg,gbayesp,gbayesndp)
   
   colnames(m) <- c("chromosome1","start1","end1","chromosome2","start2","end2","PET Count","Hypergeometric p-value",
-                   "Bayes global mixture posterior probability","Bayes No Depth Mixture Posterior Probability",
-                   "Bayes Grouped Mictured Posterior Probability")
-  
+                   "Bayes global mixture posterior probability","Bayes No Depth Mixture Posterior Probability")
+
   write.csv(m,file=outfile,row.names=F,quote=F)
-  save(hyperg,gbayes.m,gbayesnd.m,gbayesgp.m,file=modelfile)
+  save(hyperg,gbayes.m,gbayesnd.m,file=modelfile)
 }
