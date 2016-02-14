@@ -82,7 +82,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,prunin
   
   if(show.progress) close(pb)
   ret <- list(s=l,l0=lambda0,l1=lambda1)
-  if(!is.null(burnin) && is.integer(burnin) && burnin > 0) {
+  if(!is.null(burnin) && is.numeric(burnin) && burnin > 0) {
     orig <- ret
     idx <- -(1:burnin)
     ret <- lapply(ret,function(v) v[idx])
@@ -169,7 +169,7 @@ estimate.global.bayesian.no.depth.mixture <- function(ints,depth,N=1100,burnin=1
   
   if(show.progress) close(pb)
   ret <- list(s=l,l0=lambda0,l1=lambda1)
-  if(!is.null(burnin) && is.integer(burnin) && burnin > 0) {
+  if(!is.null(burnin) && is.numeric(burnin) && burnin > 0) {
     orig <- ret
     idx <- -(1:burnin)
     ret <- lapply(ret,function(v) v[idx])
@@ -256,7 +256,7 @@ estimate.global.bayesian.grouped.mixture <- function(ints,depth,N=1100,burnin=10
   
   if(show.progress) close(pb)
   ret <- list(s=l,l0=lambda0,l1=lambda1,pp=pp)
-  if(!is.null(burnin) && is.integer(burnin) && burnin > 0) {
+  if(!is.null(burnin) && is.numeric(burnin) && burnin > 0) {
     orig <- ret
     idx <- -(1:burnin)
     ret <- lapply(ret,function(v) v[idx])
