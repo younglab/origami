@@ -37,7 +37,13 @@ f <- convert.to.factor(depth,1:3)
 i1 <- convert.to.factor(intcounts,1:3,f)
 i2 <- convert.to.factor(intcounts,4:6,f)
 
+b <- i1 != i2
+
+
 p <- intcounts[i1 != i2,]
+
+#totint <- tapply(rep(p$V7,2),factor(c(as.character(i1[b]),as.character(i2[b])),levels=levels(i1)),mean)
+totint <- table(factor(c(as.character(i1[b]),as.character(i2[b])),levels=levels(i1)))
 
 if( !interactive() ){
   
@@ -45,7 +51,8 @@ if( !interactive() ){
   hyperg <- estimate.hypergeometric.pvalue(p,depth)
 
   cat("Running two-component Bayesian mixture model...\n")
-  gbayes.m <- estimate.global.bayesian.mixture.candidate1(p,depth,show.progress=T)
+  gbayes.m <- estimate.global.bayesian.mixture.candidate1(p,depth,totint,show.progress=T)
+  gbayesp <- extract.global.bayesian.mixture.candidate1.prob(gbayes.m)
   #gbayes.m <- estimate.global.bayesian.mixture(p,depth,show.progress=T)
   #gbayesp <- extract.global.bayesian.prob(gbayes.m)
   
