@@ -83,10 +83,10 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,prunin
   if(show.progress) close(pb)
   ret <- list(s=l,l0=lambda0,l1=lambda1)
   if(!is.null(burnin) && is.numeric(burnin) && burnin > 0) {
-    orig <- ret
+    burnin <- lapply(ret,function(v) v[1:burnin])
     idx <- -(1:burnin)
     ret <- lapply(ret,function(v) v[idx])
-    ret$orig <- orig
+    ret$burnin <- burnin
   }
   ret <- c(ret,list(sdepth=sdepth,msdepth=msdepth))
   ret
