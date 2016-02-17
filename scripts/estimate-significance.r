@@ -51,19 +51,20 @@ if( !interactive() ){
   hyperg <- estimate.hypergeometric.pvalue(p,depth)
 
   cat("Running two-component Bayesian mixture model...\n")
-  gbayes.m <- estimate.global.bayesian.mixture.candidate1(p,depth,totint,show.progress=T)
-  gbayesp <- extract.global.bayesian.mixture.candidate1.prob(gbayes.m)
-  #gbayes.m <- estimate.global.bayesian.mixture(p,depth,show.progress=T)
-  #gbayesp <- extract.global.bayesian.prob(gbayes.m)
+  gbayes.m1 <- estimate.global.bayesian.mixture(p,depth,show.progress=T)
+  gbayesp1 <- extract.global.bayesian.mixture.prob(gbayes.m1)
+  gbayes.m2 <- estimate.global.bayesian.mixture.candidate1(p,depth,totint,show.progress=T)
+  gbayesp2 <- extract.global.bayesian.mixture.prob(gbayes.m2)
+
   
   #gbayesnd.m <- estimate.global.bayesian.no.depth.mixture(p,depth,show.progress=T)
   #gbayesndp <- extract.global.bayesian.prob(gbayesnd.m)
   
-  m <- cbind(p,hyperg,gbayesp)
+  m <- cbind(p,hyperg,gbayesp1,gbayesp2)
   
   colnames(m) <- c("chromosome1","start1","end1","chromosome2","start2","end2","PET Count","Hypergeometric p-value",
-                   "Bayes global mixture posterior probability")
+                   "Bayes mixture 1","Bayes mixture 2")
 
   write.csv(m,file=outfile,row.names=F,quote=F)
-  save(hyperg,gbayes.m,file=modelfile)
+  save(hyperg,gbayes.m1,gbayes.m2,file=modelfile)
 }
