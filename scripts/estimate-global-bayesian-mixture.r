@@ -23,7 +23,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,prunin
     msdepth <- median(sdepth)
   }
   
-  print(c(msdepth,range(sdepth)))
+  #print(c(msdepth,range(sdepth)))
   
   pp <- rep(.5,S)
   
@@ -67,13 +67,13 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,prunin
     l0 <- rgamma(1,r,n)
 
 
-    l1x <- rgamma(1,totcounts-r,S-n)#sum(vz==1))
-    l1 <- max(l1,l1x)
+    l1 <- rgamma(1,totcounts-r,S-n)#sum(vz==1))
+    l1 <- max(l0,l1) # cap the lower bound of l1 so we don't have to reshuffle group IDs
     
     ret$lambda0[i+1] <- l0
     ret$lambda1[i+1] <- l1
 
-    print(c(l0,l1))
+    #print(c(l0,l1))
     if(show.progress) setTxtProgressBar(pb,i/N)
   }
   
@@ -119,9 +119,9 @@ estimate.global.bayesian.mixture.candidate1 <- function(ints,depth,totint,N=1100
   # frequency of interactions not including the present one
   nint <- rowMeans(cbind(totint[m1]-1,totint[m2]-1)) # since each interaction counts itself in the table in the parent script
 
-  depthscore <- floor(msdepth/sdepth)
-  alphaparam <- 1+depthscore+2*counts
-  betaparam <- 1+nint
+  depthscore <- floor(sdepth/msdepth)#floor(msdepth/sdepth)
+  alphaparam <- 1+counts
+  betaparam <- 1+depthscore
   
   #print(range(nint))
   #print(c(msdepth,range(sdepth)))
