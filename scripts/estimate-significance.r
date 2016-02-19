@@ -45,6 +45,8 @@ p <- intcounts[i1 != i2,]
 #totint <- tapply(rep(p$V7,2),factor(c(as.character(i1[b]),as.character(i2[b])),levels=levels(i1)),mean)
 totint <- table(factor(c(as.character(i1[b]),as.character(i2[b])),levels=levels(i1)))
 
+inttable <- table(factor(c(as.character(i1[i1!=i2]),as.character(i2[i1!=i2])),levels=levels(i1)),rep(p$V7,2))
+
 if( !interactive() ){
   
   cat("Running hypergeometric test...\n")
@@ -53,7 +55,7 @@ if( !interactive() ){
   cat("Running two-component Bayesian mixture model...\n")
   gbayes.m1 <- estimate.global.bayesian.mixture(p,depth,show.progress=T)
   gbayesp1 <- extract.global.bayesian.mixture.prob(gbayes.m1)
-  gbayes.m2 <- estimate.global.bayesian.mixture.candidate1(p,depth,totint,show.progress=T)
+  gbayes.m2 <- estimate.global.bayesian.mixture.candidate1(p,depth,inttable,show.progress=T)
   gbayesp2 <- extract.global.bayesian.mixture.prob(gbayes.m2)
 
   

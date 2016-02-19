@@ -78,7 +78,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,prunin
   }
   
   if(show.progress) close(pb)
-  if(!is.null(burnin) && is.numeric(burnin) && burnin > 0) {
+  if(!is.null(burnin) && is.numeric(burnin) && burnin > 0 && burnin < N) {
     bn <- lapply(ret,function(l) l[1:burnin])
     idx <- -(1:burnin)
     ret <- lapply(ret,function(v) v[idx])
@@ -88,7 +88,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,N=1100,burnin=100,prunin
   ret
 }
 
-estimate.global.bayesian.mixture.candidate1 <- function(ints,depth,totint,N=1100,burnin=100,pruning=NULL,
+estimate.global.bayesian.mixture.candidate1 <- function(ints,depth,inttable,N=1100,burnin=100,pruning=NULL,
                                                         with.distance.weight=F,multiply=T,show.progress=F,
                                                         lambda0.init=1,lambda1.init=5) {
   S <- nrow(ints)
@@ -113,15 +113,28 @@ estimate.global.bayesian.mixture.candidate1 <- function(ints,depth,totint,N=1100
   f1 <- paste(ints$V1,ints$V2,ints$V3,sep='_')
   f2 <- paste(ints$V4,ints$V5,ints$V6,sep='_')
   
-  m1 <- match(f1,names(totint))
-  m2 <- match(f2,names(totint))
+  m1 <- match(f1,rownames(inttable))
+  m2 <- match(f2,rownames(inttable))
   
   # frequency of interactions not including the present one
-  nint <- rowMeans(cbind(totint[m1]-1,totint[m2]-1)) # since each interaction counts itself in the table in the parent script
+  #nint <- rowMeans(cbind(totint[m1]-1,totint[m2]-1)) # since each interaction counts itself in the table in the parent script
+  
+  #pint <- apply(cbind(inttable[m1],inttable[m2],counts),1,function(r) { idx <- as.integer(colnames(inttable))<r[3]; sum(r[1:2])}
+  countm <- t(mapply(function(x1,x2,n) {
+    idx <- as.integer(colnames(inttable))<n
+    
+    z <- inttable[c(x1,x2),]
+    #print(z)
+    #print(idx)
+    a <- if(!any(idx)) 0 else sum(z[,idx])
+    b <- sum(z)-a
+    c(a,b)
+  },as.list(m1),as.list(m2),as.list(counts),SIMPLIFY=T))
+
 
   depthscore <- floor(sdepth/msdepth)#floor(msdepth/sdepth)
-  alphaparam <- 1+counts
-  betaparam <- 1+depthscore
+  alphaparam <- 1+countm[,1]
+  betaparam <- 1+depthscore+countm[,2]
   
   #print(range(nint))
   #print(c(msdepth,range(sdepth)))
@@ -187,7 +200,7 @@ estimate.global.bayesian.mixture.candidate1 <- function(ints,depth,totint,N=1100
   
   if(show.progress) close(pb)
   #ret <- list(s=l,l0=lambda0,l1=lambda1)
-  if(!is.null(burnin) && is.numeric(burnin) && burnin > 0) {
+  if(!is.null(burnin) && is.numeric(burnin) && burnin > 0 && burnin < N) {
     bn <- lapply(ret,function(l) l[1:burnin])
     idx <- -(1:burnin)
     ret <- lapply(ret,function(v) v[idx])
