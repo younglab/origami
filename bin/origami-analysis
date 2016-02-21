@@ -8,10 +8,67 @@ INTCOUNTFILE=raw-interactions.out
 TMPFILE=$RANDOM.peaks.bed
 TMPBAMPREFIX=bam$RANDOM.prefix
 
+helpmenu() {
+  if [ $# -eq 1 ];
+  then
+    echo $1
+  fi
+  
+  echo "origami-analysis <mapped reads BAM> <peak BED file> <output prefix>"
+  echo "  -h help menu (this output)"
+  echo "  --iterations=[positive integer] Sets the number of iterations for running the MCMC estimation"
+}
+
+
+
+TEMP=`getopt -o h -l iterations:: -n 'origami' -- "$@"`
+eval set -- "$TEMP"
+
+while [ $# -ge 1 ]; do
+	case "$1" in
+		--)
+			shift
+			break
+			;;
+		-o|--output)
+			OUTPUTDIR=$2
+			shift
+			;;
+		-h)
+			helpmenu
+			exit 0
+			;;
+		-v)
+			VERBOSE=on
+			;;
+		--noskip)
+			SKIP=off
+			;;
+		-p)
+			PARALLEL=on
+			;;
+		--splitnum)
+		  SPLITNUM=$(expr "$2" \* 4)
+		  shift
+		  ;;
+		--bowtieidx)
+		  echo "Deprecated option (does not do anything)"
+		  BOWTIEIDX=$2
+		  shift
+		  ;;
+	esac
+	shift
+done
+
+if [ $# -lt 3 ];
+then
+  helpmenu "Error: did not supply necessary file name arguments"
+  exit 1
+fi
+
 READSFILE=$1
 INPUTFILE=$2
 PREFIX=$3
-
 
 echo "Identifying PET counts in peaks and interactions..."
 

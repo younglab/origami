@@ -12,7 +12,6 @@ BZPOSTFIX="[.]bz2$"
 BOWTIEIDX=notafile
 KEEPTMP=no
 
-source $BINDIR/dispatch.sh
 
 verbose() {
 	if [ "$VERBOSE" = on ]
