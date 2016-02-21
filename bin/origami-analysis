@@ -30,31 +30,13 @@ while [ $# -ge 1 ]; do
 			shift
 			break
 			;;
-		-o|--output)
-			OUTPUTDIR=$2
-			shift
-			;;
 		-h)
 			helpmenu
 			exit 0
 			;;
-		-v)
-			VERBOSE=on
-			;;
-		--noskip)
-			SKIP=off
-			;;
-		-p)
-			PARALLEL=on
-			;;
-		--splitnum)
-		  SPLITNUM=$(expr "$2" \* 4)
-		  shift
-		  ;;
-		--bowtieidx)
-		  echo "Deprecated option (does not do anything)"
-		  BOWTIEIDX=$2
-		  shift
+		--iterations)
+		  echo "Not implemented yet"
+		  exit 1
 		  ;;
 	esac
 	shift
