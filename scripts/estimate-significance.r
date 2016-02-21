@@ -58,7 +58,7 @@ if( !interactive() ){
   gbayesp1 <- extract.global.bayesian.mixture.prob(gbayes.m1)
   
   cat("Model 2\n")
-  gbayes.m2 <- estimate.global.bayesian.weighed.depth.mixture(p,depthshow.progress=T)
+  gbayes.m2 <- estimate.global.bayesian.weighed.depth.mixture(p,depth,show.progress=T)
   gbayesp2 <- extract.global.bayesian.mixture.prob(gbayes.m2)
 
   
