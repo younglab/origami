@@ -54,7 +54,7 @@ if( !interactive() ){
 
   cat("Running two-component Bayesian mixture model...\n")
   cat("Model 1\n")
-  gbayes.m1 <- estimate.global.bayesian.mixture(p,depth,,inttable,show.progress=T)
+  gbayes.m1 <- estimate.global.bayesian.mixture(p,depth,inttable,show.progress=T)
   gbayesp1 <- extract.global.bayesian.mixture.prob(gbayes.m1)
   
   cat("Model 2\n")
