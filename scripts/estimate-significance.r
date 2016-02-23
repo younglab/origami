@@ -40,7 +40,15 @@ f <- convert.to.factor(depth,1:3)
 i1 <- convert.to.factor(intcounts,1:3,f)
 i2 <- convert.to.factor(intcounts,4:6,f)
 
+b <- i1 != i2
+
+
 p <- intcounts[i1 != i2,]
+
+#totint <- tapply(rep(p$V7,2),factor(c(as.character(i1[b]),as.character(i2[b])),levels=levels(i1)),mean)
+totint <- table(factor(c(as.character(i1[b]),as.character(i2[b])),levels=levels(i1)))
+
+inttable <- table(factor(c(as.character(i1[i1!=i2]),as.character(i2[i1!=i2])),levels=levels(i1)),rep(p$V7,2))
 
 if( !interactive() ){
   
@@ -48,17 +56,20 @@ if( !interactive() ){
   hyperg <- estimate.hypergeometric.pvalue(p,depth)
 
   cat("Running two-component Bayesian mixture model...\n")
-  gbayes.m <- estimate.global.bayesian.mixture(p,depth,show.progress=T)
-  gbayesp <- extract.global.bayesian.prob(gbayes.m)
+  cat("Model 1\n")
+  gbayes.m1 <- estimate.global.bayesian.mixture(p,depth,inttable,show.progress=T)
+  gbayesp1 <- extract.global.bayesian.mixture.prob(gbayes.m1)
   
-  gbayesnd.m <- estimate.global.bayesian.no.depth.mixture(p,depth,show.progress=T)
-  gbayesndp <- extract.global.bayesian.prob(gbayesnd.m)
+  cat("Model 2\n")
+  gbayes.m2 <- estimate.global.bayesian.weighed.depth.mixture(p,depth,show.progress=T)
+  gbayesp2 <- extract.global.bayesian.mixture.prob(gbayes.m2)
+
   
-  m <- cbind(p,hyperg,gbayesp,gbayesndp)
+  m <- cbind(p,hyperg,gbayesp1,gbayesp2)
   
   colnames(m) <- c("chromosome1","start1","end1","chromosome2","start2","end2","PET Count","Hypergeometric p-value",
-                   "Bayes global mixture posterior probability","Bayes No Depth Mixture Posterior Probability")
+                   "Bayes mixture 1","Bayes mixture 2")
 
   write.csv(m,file=outfile,row.names=F,quote=F)
-  save(hyperg,gbayes.m,gbayesnd.m,file=modelfile)
+  save(hyperg,gbayes.m1,gbayes.m2,file=modelfile)
 }
