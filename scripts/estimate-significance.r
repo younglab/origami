@@ -7,6 +7,9 @@ if( !interactive() ) {
   intcounts <- if( !is.na(args[2])) args[2] else "int-counts.txt"
   outfile <- if( !is.na(args[3])) args[3] else "results.csv"
   modelfile <- if( !is.na(args[4])) args[4] else "model-data.Rdata"
+  iterations <- if( !is.na(args[5])) as.integer(args[5]) else 10000
+  burnin <- if( !is.na(args[6])) as.integer(args[6]) else 100
+  prune <- if( !is.na(args[7])) as.integer(args[7]) else 5
   
   args <- commandArgs()
   
