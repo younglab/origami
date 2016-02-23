@@ -11,6 +11,8 @@ SPLITNUM=4000000
 BZPOSTFIX="[.]bz2$"
 BOWTIEIDX=notafile
 KEEPTMP=no
+FORWARDLINKER="ACGCGATATCTTATCTGACT"
+REVERSELINKER="AGTCAGATAAGATATCGCGT"
 
 
 verbose() {
@@ -55,10 +57,12 @@ helpmenu() {
   echo "  --splitnum=<NUM> Split reads into NUM for -p (default none)"
   echo "  --keep-tmp Keep temporary directory (default is to remove it when finished)"
   echo "  --lsf-queue= Set the queue name for LSF (implies -p)"
+  echo "  --forward-linker=  Set the foward-linker sequence (default ACGCGATATCTTATCTGACT)"
+  echo "  --reverse-linker=  Set the reverse-linker sequqence (default AGTCAGATAAGATATCGCGT)"
   echo "  --bowtieidx= Bowtie index (deprecated, inactive)"
 }
 
-TEMP=`getopt -o o::hvap -l output::,noskip,splitnum::,bowtieidx:,keep-tmp,lsf-queue:: -n 'origami' -- "$@"`
+TEMP=`getopt -o o::hvap -l output::,noskip,splitnum::,bowtieidx:,keep-tmp,lsf-queue::,forward-linker:,reverse-linker: -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -100,6 +104,14 @@ while [ $# -ge 1 ]; do
 		--lsf-queue)
 		  LSFQUEUE="$1"
 		  PARALLEL=on
+		  shift
+		  ;;
+		--forward-linker)
+		  FORWARDLINKER="$1"
+		  shift
+		  ;;
+		--reverse-linker)
+		  REVERSELINKER="$1"
 		  shift
 		  ;;
 	esac
@@ -174,8 +186,8 @@ then
     wait
 
   
-    #rm $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
     dispatch "bzip2 $OUTPUTDIR/tmp/left_reads.fq"
+    
     dispatch "bzip2 $OUTPUTDIR/tmp/right_reads.fq"
 
     wait
@@ -184,13 +196,14 @@ then
     LEFTREADS=($(ls $OUTPUTDIR/tmp/leftreads*))
     RIGHTREADS=($(ls $OUTPUTDIR/tmp/rightreads*))
     for ((i=0;i<${#LEFTREADS[@]};++i)); do
-      dispatch cutadapt -f fastq -n 3 -m 17 --overlap 10 -a forward="ACGCGATATCTTATCTGACT" -a reverse="AGTCAGATAAGATATCGCGT" -o $OUTPUTDIR/tmp/l_t1_$i.fq --untrimmed-output $OUTPUTDIR/tmp/l_nt1_$i.fq -p $OUTPUTDIR/tmp/r_t1_$i.fq --untrimmed-paired-output $OUTPUTDIR/tmp/r_nt1_$i.fq ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+      dispatch cutadapt -f fastq -n 3 -m 17 --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/l_t1_$i.fq --untrimmed-output $OUTPUTDIR/tmp/l_nt1_$i.fq -p $OUTPUTDIR/tmp/r_t1_$i.fq --untrimmed-paired-output $OUTPUTDIR/tmp/r_nt1_$i.fq ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
     done
     wait
   
     for ((i=0;i<${#LEFTREADS[@]};++i)); do
-      dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward="ACGCGATATCTTATCTGACT" -a reverse="AGTCAGATAAGATATCGCGT" -o $OUTPUTDIR/tmp/r_t2_$i.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt2_$i.fq -p $OUTPUTDIR/tmp/l_t2_$i.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt2_$i.fq $OUTPUTDIR/tmp/r_nt1_$i.fq $OUTPUTDIR/tmp/l_nt1_$i.fq
-      dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward="ACGCGATATCTTATCTGACT" -a reverse="AGTCAGATAAGATATCGCGT" -o $OUTPUTDIR/tmp/r_t3_$i.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt3_$i.fq -p $OUTPUTDIR/tmp/l_t3_$i.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt3_$i.fq $OUTPUTDIR/tmp/r_t1_$i.fq $OUTPUTDIR/tmp/l_t1_$i.fq
+      dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t2_$i.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt2_$i.fq -p $OUTPUTDIR/tmp/l_t2_$i.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt2_$i.fq $OUTPUTDIR/tmp/r_nt1_$i.fq $OUTPUTDIR/tmp/l_nt1_$i.fq
+      
+      dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t3_$i.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt3_$i.fq -p $OUTPUTDIR/tmp/l_t3_$i.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt3_$i.fq $OUTPUTDIR/tmp/r_t1_$i.fq $OUTPUTDIR/tmp/l_t1_$i.fq
     done
 
     wait
@@ -225,13 +238,13 @@ then
 
     wait
 
-    dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward="ACGCGATATCTTATCTGACT" -a reverse="AGTCAGATAAGATATCGCGT" -o $OUTPUTDIR/tmp/l_t1.fq --untrimmed-output $OUTPUTDIR/tmp/l_nt1.fq -p $OUTPUTDIR/tmp/r_t1.fq --untrimmed-paired-output $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+    dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/l_t1.fq --untrimmed-output $OUTPUTDIR/tmp/l_nt1.fq -p $OUTPUTDIR/tmp/r_t1.fq --untrimmed-paired-output $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
     
     wait
     
-    dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward="ACGCGATATCTTATCTGACT" -a reverse="AGTCAGATAAGATATCGCGT" -o $OUTPUTDIR/tmp/r_t2.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt2.fq -p $OUTPUTDIR/tmp/l_t2.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt2.fq $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/l_nt1.fq
+    dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t2.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt2.fq -p $OUTPUTDIR/tmp/l_t2.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt2.fq $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/l_nt1.fq
     
-    dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward="ACGCGATATCTTATCTGACT" -a reverse="AGTCAGATAAGATATCGCGT" -o $OUTPUTDIR/tmp/r_t3.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt3.fq -p $OUTPUTDIR/tmp/l_t3.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt3.fq $OUTPUTDIR/tmp/r_t1.fq $OUTPUTDIR/tmp/l_t1.fq
+    dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t3.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt3.fq -p $OUTPUTDIR/tmp/l_t3.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt3.fq $OUTPUTDIR/tmp/r_t1.fq $OUTPUTDIR/tmp/l_t1.fq
 
     wait
 
