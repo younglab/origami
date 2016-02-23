@@ -45,20 +45,22 @@ p <- intcounts[i1 != i2,]
 #totint <- tapply(rep(p$V7,2),factor(c(as.character(i1[b]),as.character(i2[b])),levels=levels(i1)),mean)
 totint <- table(factor(c(as.character(i1[b]),as.character(i2[b])),levels=levels(i1)))
 
+inttable <- table(factor(c(as.character(i1[i1!=i2]),as.character(i2[i1!=i2])),levels=levels(i1)),rep(p$V7,2))
+
 if( !interactive() ){
   
   cat("Running hypergeometric test...\n")
   hyperg <- estimate.hypergeometric.pvalue(p,depth)
 
   cat("Running two-component Bayesian mixture model...\n")
-  gbayes.m1 <- estimate.global.bayesian.mixture(p,depth,show.progress=T)
+  cat("Model 1\n")
+  gbayes.m1 <- estimate.global.bayesian.mixture(p,depth,inttable,show.progress=T)
   gbayesp1 <- extract.global.bayesian.mixture.prob(gbayes.m1)
-  gbayes.m2 <- estimate.global.bayesian.mixture.candidate1(p,depth,totint,show.progress=T)
+  
+  cat("Model 2\n")
+  gbayes.m2 <- estimate.global.bayesian.weighed.depth.mixture(p,depth,show.progress=T)
   gbayesp2 <- extract.global.bayesian.mixture.prob(gbayes.m2)
 
-  
-  #gbayesnd.m <- estimate.global.bayesian.no.depth.mixture(p,depth,show.progress=T)
-  #gbayesndp <- extract.global.bayesian.prob(gbayesnd.m)
   
   m <- cbind(p,hyperg,gbayesp1,gbayesp2)
   
