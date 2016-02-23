@@ -33,7 +33,7 @@ verbosecmd() {
 dispatch() {
         if [ "$PARALLEL" = on ]
         then
-                bsub -K -q normal -J origami -o $OUTPUTDIR/logs/cluster_log.txt "$@" &
+                bsub -K -q $LSFQUEUE -J origami -o $OUTPUTDIR/logs/cluster_log.txt "$@" &
         else
                 eval "$@"
         fi
@@ -44,7 +44,7 @@ helpmenu() {
   then
     echo $1
   fi
-  echo "origami.sh [options] <bowtie index> <first FASTQ> <second FASTQ>"
+  echo "origami-alignment [options] <bowtie index> <first FASTQ> <second FASTQ>"
   echo "  For the FASTQ files, they may be either in plan text (no compression), gzip (.gz),"
   echo "    or bzip2 (.bz2) format (automatically deteced by file suffix)"
   echo ""
@@ -54,10 +54,11 @@ helpmenu() {
   echo "  -p parallel LSF mode (distributed bsub)"
   echo "  --splitnum=<NUM> Split reads into NUM for -p (default none)"
   echo "  --keep-tmp Keep temporary directory (default is to remove it when finished)"
+  echo "  --lsf-queue= Set the queue name for LSF (implies -p)"
   echo "  --bowtieidx= Bowtie index (deprecated, inactive)"
 }
 
-TEMP=`getopt -o o::hvap -l output::,noskip,splitnum::,bowtieidx:,keep-tmp -n 'origami' -- "$@"`
+TEMP=`getopt -o o::hvap -l output::,noskip,splitnum::,bowtieidx:,keep-tmp,lsf-queue:: -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -96,6 +97,11 @@ while [ $# -ge 1 ]; do
 		  KEEPTMP=yes
 		  shift
 		  ;;
+		--lsf-queue)
+		  LSFQUEUE="$1"
+		  PARALLEL=on
+		  shift
+		  ;;
 	esac
 	shift
 done
@@ -109,6 +115,13 @@ fi
 BOWTIEIDX="$1"
 LEFTREADS="$2"
 RIGHTREADS="$3"
+
+if [[ "$PARALLEL" == "on" ]] && [[ ! -n "$LSFQUEUE" ]];
+then
+  helpmenu "Error: if using -p, then must use --lsf-queue"
+  exit 1
+fi
+
 
 echo "Launching origami..."
 
@@ -129,11 +142,9 @@ fi
 ## Get file suffix (assumes same suffix for both left and right files)
 FILESUFFIX=${LEFTREADS##*.}
 
-#wait
-
 echo "Removing adapter sequences on $LEFTREADS and $RIGHTREADS"
 if [[ "$SKIP" == "off" || ! -e "$OUTPUTDIR/mapped_reads.bam" ]];
-then #&& $BINDIR/adapter_trim.sh $OUTPUTDIR $PARALLEL $SPLITNUM $LEFTREADS $RIGHTREADS
+then
 
   ## structure of script influenced by Diego's work
 
