@@ -7,6 +7,9 @@ PEAKCOUNTFILE=raw-counts.out
 INTCOUNTFILE=raw-interactions.out
 TMPFILE=$RANDOM.peaks.bed
 TMPBAMPREFIX=bam$RANDOM.prefix
+BURNIN=100
+ITERATIONS=50000
+PRUNE=5
 
 helpmenu() {
   if [ $# -eq 1 ];
@@ -16,12 +19,14 @@ helpmenu() {
   
   echo "origami-analysis <mapped reads BAM> <peak BED file> <output prefix>"
   echo "  -h help menu (this output)"
-  echo "  --iterations=[positive integer] Sets the number of iterations for running the MCMC estimation"
+  echo "  --iterations=[positive integer] Sets the number of iterations for running the MCMC estimation (default 50000)"
+  echo "  --burn-in=[0 or positive integer] Sets the number of iterations to use as the burn-in period, separate from the --iterations (default 100, 0 means no burn-in period)"
+  echo "  --prune=[0 or >=2] Sets the number of steps at which to take an iteration rather than prune it (default 5, 0 means no pruning)"
 }
 
 
 
-TEMP=`getopt -o h -l iterations:: -n 'origami' -- "$@"`
+TEMP=`getopt -o h -l iterations:,burn-in:,prune: -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -35,8 +40,16 @@ while [ $# -ge 1 ]; do
 			exit 0
 			;;
 		--iterations)
-		  echo "Not implemented yet"
-		  exit 1
+		  ITERATIONS="$1"
+		  shift
+		  ;;
+		--burn-in)
+		  BURNIN="$1"
+		  shift
+		  ;;
+		--prune)
+		  PRUNE="$1"
+		  shift
 		  ;;
 	esac
 	shift
@@ -72,4 +85,4 @@ rm $TMPFILE
 
 echo "Estimating interaction belief..."
 
-Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata
+Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE
