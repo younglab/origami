@@ -13,6 +13,9 @@ BOWTIEIDX=notafile
 KEEPTMP=no
 FORWARDLINKER="ACGCGATATCTTATCTGACT"
 REVERSELINKER="AGTCAGATAAGATATCGCGT"
+ABLINKERA="CTGCTGTCCG"
+ABLINKERB="CTGCTGTCAT"
+USEABLINKER=no
 
 
 verbose() {
@@ -59,10 +62,11 @@ helpmenu() {
   echo "  --lsf-queue= Set the queue name for LSF (implies -p)"
   echo "  --forward-linker=  Set the foward-linker sequence (default ACGCGATATCTTATCTGACT)"
   echo "  --reverse-linker=  Set the reverse-linker sequqence (default AGTCAGATAAGATATCGCGT)"
+  echo "  --ab-linker   Run alignment using AB-linker setup"
   echo "  --bowtieidx= Bowtie index (deprecated, inactive)"
 }
 
-TEMP=`getopt -o o::hvap -l output::,noskip,splitnum::,bowtieidx:,keep-tmp,lsf-queue::,forward-linker:,reverse-linker: -n 'origami' -- "$@"`
+TEMP=`getopt -o o::hvap -l output::,noskip,splitnum::,bowtieidx:,keep-tmp,lsf-queue::,forward-linker:,reverse-linker:,ab-linker -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -99,20 +103,22 @@ while [ $# -ge 1 ]; do
 		  ;;
 		--keep-tmp)
 		  KEEPTMP=yes
-		  shift
 		  ;;
 		--lsf-queue)
-		  LSFQUEUE="$1"
+		  LSFQUEUE="$2"
 		  PARALLEL=on
 		  shift
 		  ;;
 		--forward-linker)
-		  FORWARDLINKER="$1"
+		  FORWARDLINKER="$2"
 		  shift
 		  ;;
 		--reverse-linker)
-		  REVERSELINKER="$1"
+		  REVERSELINKER="$2"
 		  shift
+		  ;;
+		--ab-linker)
+		  USEABLINKER=yes
 		  ;;
 	esac
 	shift
@@ -154,6 +160,18 @@ fi
 ## Get file suffix (assumes same suffix for both left and right files)
 FILESUFFIX=${LEFTREADS##*.}
 
+case "$FILESUFFIX" in
+  gz)
+    CATFUNC=zcat
+    ;;
+  bz2)
+    CATFUNC=bzcat
+    ;;
+  *)
+    CATFUNC=cat
+    ;;
+esac
+
 echo "Removing adapter sequences on $LEFTREADS and $RIGHTREADS"
 if [[ "$SKIP" == "off" || ! -e "$OUTPUTDIR/mapped_reads.bam" ]];
 then
@@ -162,17 +180,7 @@ then
 
   if [ $PARALLEL = "on" ]
   then
-    case "$FILESUFFIX" in
-      gz)
-        CATFUNC=zcat
-        ;;
-      bz2)
-        CATFUNC=bzcat
-        ;;
-      *)
-        CATFUNC=cat
-        ;;
-    esac
+
   
     dispatch "$CATFUNC $LEFTREADS | sed -e 's/\/[0-9];[0-9]//' > $OUTPUTDIR/tmp/left_reads.fq"
     
@@ -220,42 +228,52 @@ then
 
   else
 
-    case "$FILESUFFIX" in
-      gz)
-        CATFUNC=zcat
-        ;;
-      bz2)
-        CATFUNC=bzcat
-        ;;
-      *)
-        CATFUNC=cat
-        ;;
-    esac
-    
     verbosecmd "$CATFUNC $LEFTREADS | sed -e 's/\/[0-9];[0-9]//' - > $OUTPUTDIR/tmp/left_reads.fq"
     
     verbosecmd "$CATFUNC $RIGHTREADS | sed -e 's/\/[0-9];[0-9]//' - > $OUTPUTDIR/tmp/right_reads.fq"
 
     wait
-
-    dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/l_t1.fq --untrimmed-output $OUTPUTDIR/tmp/l_nt1.fq -p $OUTPUTDIR/tmp/r_t1.fq --untrimmed-paired-output $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
     
-    wait
+    if [ $USEABLINKER = "yes" ]
+    then
+      dispatch cutadapt -n 3 --overlap 10 -e 0 -a $ABLINKERA -A $ABLINKERA -o $OUTPUTDIR/tmp/l_same_aa.fq -p $OUTPUTDIR/tmp/r_same_aa.fq --untrimmed-output $OUTPUTDIR/tmp/l_non_aa.fq  --untrimmed-paired-output $OUTPUTDIR/tmp/r_non_aa.fq $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+      
+      dispatch cutadapt -n 3 --overlap 10 -e 0 -a $ABLINKERB -A $ABLINKERB -o $OUTPUTDIR/tmp/l_same_bb.fq -p $OUTPUTDIR/tmp/r_same_bb.fq --untrimmed-output $OUTPUTDIR/tmp/l_non_bb.fq  --untrimmed-paired-output $OUTPUTDIR/tmp/r_non_bb.fq $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+
+      dispatch cutadapt -n 3 --overlap 10 -e 0 -a $ABLINKERA -A $ABLINKERB -o $OUTPUTDIR/tmp/l_diff_ab.fq -p $OUTPUTDIR/tmp/r_diff_ab.fq --untrimmed-output $OUTPUTDIR/tmp/l_non_ab.fq  --untrimmed-paired-output $OUTPUTDIR/tmp/r_non_ab.fq $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+
+      dispatch cutadapt -n 3 --overlap 10 -e 0 -a $ABLINKERB -A $ABLINKERA -o $OUTPUTDIR/tmp/l_diff_ba.fq -p $OUTPUTDIR/tmp/r_diff_ba.fq --untrimmed-output $OUTPUTDIR/tmp/l_non_ba.fq  --untrimmed-paired-output $OUTPUTDIR/tmp/r_non_ba.fq $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+
+      dispatch "cat $OUTPUTDIR/tmp/l_same_aa.fq $OUTPUTDIR/tmp/l_same_bb.fq > $OUTPUTDIR/tmp/left_kept.fq"
+      
+      dispatch "cat $OUTPUTDIR/tmp/r_same_aa.fq $OUTPUTDIR/tmp/r_same_bb.fq > $OUTPUTDIR/tmp/right_kept.fq"
+
+      dispatch "cat $OUTPUTDIR/tmp/l_diff_ab.fq $OUTPUTDIR/tmp/l_diff_ba.fq > $OUTPUTDIR/tmp/l_diff.fq"
+      
+      dispatch "cat $OUTPUTDIR/tmp/r_diff_ab.fq $OUTPUTDIR/tmp/r_diff_ba.fq > $OUTPUTDIR/tmp/r_diff.fq"
+
+
+    else
+
+      dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/l_t1.fq --untrimmed-output $OUTPUTDIR/tmp/l_nt1.fq -p $OUTPUTDIR/tmp/r_t1.fq --untrimmed-paired-output $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
     
-    dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t2.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt2.fq -p $OUTPUTDIR/tmp/l_t2.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt2.fq $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/l_nt1.fq
+      wait
     
-    dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t3.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt3.fq -p $OUTPUTDIR/tmp/l_t3.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt3.fq $OUTPUTDIR/tmp/r_t1.fq $OUTPUTDIR/tmp/l_t1.fq
+      dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t2.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt2.fq -p $OUTPUTDIR/tmp/l_t2.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt2.fq $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/l_nt1.fq
+    
+      dispatch cutadapt -n 3 -m 17 --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t3.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt3.fq -p $OUTPUTDIR/tmp/l_t3.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt3.fq $OUTPUTDIR/tmp/r_t1.fq $OUTPUTDIR/tmp/l_t1.fq
 
-    wait
+      wait
 
-    dispatch "cat $OUTPUTDIR/tmp/l_t3.fq $OUTPUTDIR/tmp/l_nt3.fq $OUTPUTDIR/tmp/l_t2.fq > $OUTPUTDIR/tmp/left_kept.fq"
-    dispatch "cat $OUTPUTDIR/tmp/r_t3.fq $OUTPUTDIR/tmp/r_nt3.fq $OUTPUTDIR/tmp/r_t2.fq > $OUTPUTDIR/tmp/right_kept.fq"
+      dispatch "cat $OUTPUTDIR/tmp/l_t3.fq $OUTPUTDIR/tmp/l_nt3.fq $OUTPUTDIR/tmp/l_t2.fq > $OUTPUTDIR/tmp/left_kept.fq"
+      dispatch "cat $OUTPUTDIR/tmp/r_t3.fq $OUTPUTDIR/tmp/r_nt3.fq $OUTPUTDIR/tmp/r_t2.fq > $OUTPUTDIR/tmp/right_kept.fq"
 
-    dispatch "cat $OUTPUTDIR/tmp/l_nt2.fq > $OUTPUTDIR/tmp/left_untrimmed.fq"
-    dispatch "cat $OUTPUTDIR/tmp/r_nt2.fq > $OUTPUTDIR/tmp/right_untrimmed.fq"
+      dispatch "cat $OUTPUTDIR/tmp/l_nt2.fq > $OUTPUTDIR/tmp/left_untrimmed.fq"
+      dispatch "cat $OUTPUTDIR/tmp/r_nt2.fq > $OUTPUTDIR/tmp/right_untrimmed.fq"  
 
-    wait
-  
+      wait
+    fi
+    
     rm $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
   
   fi
