@@ -181,10 +181,10 @@ then
   if [ $PARALLEL = "on" ]
   then
 
-  
-    dispatch "$CATFUNC $LEFTREADS | sed -e 's/\/[0-9];[0-9]//' > $OUTPUTDIR/tmp/left_reads.fq"
+#| sed -e 's/\/[0-9];[0-9]//'  
+    dispatch "$CATFUNC $LEFTREADS  > $OUTPUTDIR/tmp/left_reads.fq"
     
-    dispatch "$CATFUNC $RIGHTREADS | sed -e 's/\/[0-9];[0-9]//' > $OUTPUTDIR/tmp/right_reads.fq"
+    dispatch "$CATFUNC $RIGHTREADS  > $OUTPUTDIR/tmp/right_reads.fq"
   
     wait 
     dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/leftreads"
@@ -228,9 +228,9 @@ then
 
   else
 
-    verbosecmd "$CATFUNC $LEFTREADS | sed -e 's/\/[0-9];[0-9]//' - > $OUTPUTDIR/tmp/left_reads.fq"
+    verbosecmd "$CATFUNC $LEFTREADS > $OUTPUTDIR/tmp/left_reads.fq"
     
-    verbosecmd "$CATFUNC $RIGHTREADS | sed -e 's/\/[0-9];[0-9]//' - > $OUTPUTDIR/tmp/right_reads.fq"
+    verbosecmd "$CATFUNC $RIGHTREADS > $OUTPUTDIR/tmp/right_reads.fq"
 
     wait
     
