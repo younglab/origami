@@ -194,22 +194,21 @@ then
   if [ $PARALLEL = "on" ]
   then
 
-#| sed -e 's/\/[0-9];[0-9]//'  
-    dispatch "$CATFUNC $LEFTREADS  > $OUTPUTDIR/tmp/left_reads.fq"
+    dispatch "$CATFUNC $LEFTREADS | $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/leftreads > $OUTPUTDIR/tmp/left_reads.fq "
     
-    dispatch "$CATFUNC $RIGHTREADS  > $OUTPUTDIR/tmp/right_reads.fq"
+    dispatch "$CATFUNC $RIGHTREADS | $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/rightreads > $OUTPUTDIR/tmp/right_reads.fq"
   
     wait 
-    dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/leftreads"
+#    dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/leftreads"
     
-    dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/right_reads.fq $OUTPUTDIR/tmp/rightreads"
+#    dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/right_reads.fq $OUTPUTDIR/tmp/rightreads"
   
-    wait
+#    wait
 
   
-    dispatch "bzip2 $OUTPUTDIR/tmp/left_reads.fq"
+#    dispatch "bzip2 $OUTPUTDIR/tmp/left_reads.fq"
     
-    dispatch "bzip2 $OUTPUTDIR/tmp/right_reads.fq"
+#    dispatch "bzip2 $OUTPUTDIR/tmp/right_reads.fq"
 
     wait
     
