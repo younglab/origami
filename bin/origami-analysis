@@ -7,6 +7,8 @@ PEAKCOUNTFILE=raw-counts.out
 INTCOUNTFILE=raw-interactions.out
 TMPFILE=$RANDOM.peaks.bed
 TMPBAMPREFIX=bam$RANDOM.prefix
+SLOPDIST=0
+SLOPGENOME=null
 
 helpmenu() {
   if [ $# -eq 1 ];
@@ -17,11 +19,13 @@ helpmenu() {
   echo "origami-analysis <mapped reads BAM> <peak BED file> <output prefix>"
   echo "  -h help menu (this output)"
   echo "  --iterations=[positive integer] Sets the number of iterations for running the MCMC estimation"
+  echo "  --slop-dist=[positive integer]  Set the slop distance on both ends of the peak (default 0, needs --slop-genome)"
+  echo "  --slop-genome=[file]      Genome annotation file for size of each chromosome (default none, needs --slop-dist)"
 }
 
 
 
-TEMP=`getopt -o h -l iterations:: -n 'origami' -- "$@"`
+TEMP=`getopt -o h -l iterations::,slop-dist:,slop-genome: -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -38,6 +42,14 @@ while [ $# -ge 1 ]; do
 		  echo "Not implemented yet"
 		  exit 1
 		  ;;
+		--slop-dist)
+		  SLOPDIST="$2"
+		  shift
+		  ;;
+		--slop-genome)
+		  SLOPGENOME="$2"
+		  shift
+		  ;;
 	esac
 	shift
 done
@@ -48,13 +60,30 @@ then
   exit 1
 fi
 
+if [ ($SLOPDIST -eq 0 && ]
+
 READSFILE=$1
 INPUTFILE=$2
 PREFIX=$3
 
+if [ ($SLOPDIST -eq 0 && $SLOPGENOME != "null") || ($SLOPDIST -gt 0 && $SLOPGENOME = "null")]
+then
+  helpmenu "Error: if specifying --slop-dist or --slop-genome, must specify the other"
+  exit 1
+fi
+
+
 echo "Identifying PET counts in peaks and interactions..."
 
 cut -f 1,2,3 $INPUTFILE | sort -k 1,1 -k 2,2n > $TMPFILE
+
+if [ $SLOPDIST -gt 0 ];
+then
+  OUTFILE=$PREFIX.slop.bed
+  bedtools slop -i $TMPFILE -g $SLOPGENOME -b $SLOPDIST | bedtools merge > $OUTFILE
+  cp $OUTFILE $TMPFILE
+fi
+  
 
 if [ ! -e "$PREFIX-raw-counts.out" ];
 then
