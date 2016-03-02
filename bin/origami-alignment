@@ -371,9 +371,9 @@ then
     wait
   fi
 
-  dispatch "cd $OUTPUTDIR/tmp && samtools sort -Obam -Tlefttmp -n $OUTPUTDIR/tmp/left_kept.bam > $OUTPUTDIR/tmp/left_kept.sorted.bam"
+  dispatch "cd $OUTPUTDIR/tmp && samtools sort -Obam -Tlefttmp -n left_kept.bam > left_kept.sorted.bam"
   
-  dispatch "cd $OUTPUTDIR/tmp && samtools sort -Obam -Trighttmp -n $OUTPUTDIR/tmp/right_kept.bam > $OUTPUTDIR/tmp/right_kept.sorted.bam"
+  dispatch "cd $OUTPUTDIR/tmp && samtools sort -Obam -Trighttmp -n right_kept.bam > right_kept.sorted.bam"
 
   wait
 
