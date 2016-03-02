@@ -60,13 +60,12 @@ then
   exit 1
 fi
 
-if [ ($SLOPDIST -eq 0 && ]
 
 READSFILE=$1
 INPUTFILE=$2
 PREFIX=$3
 
-if [ ($SLOPDIST -eq 0 && $SLOPGENOME != "null") || ($SLOPDIST -gt 0 && $SLOPGENOME = "null")]
+if ([ $SLOPDIST -eq 0 ] && [ $SLOPGENOME != "null" ]) || ([ $SLOPDIST -gt 0 ] && [ $SLOPGENOME = "null" ])
 then
   helpmenu "Error: if specifying --slop-dist or --slop-genome, must specify the other"
   exit 1
