@@ -18,6 +18,7 @@ ABLINKERB="CTGCTGTCAT"
 USEABLINKER=no
 PREPROCESSINGCMD=cat
 MINREADLENGTH=15
+MACSGSIZE=hs
 
 
 verbose() {
@@ -67,11 +68,10 @@ helpmenu() {
   echo "  --reverse-linker=  Set the reverse-linker sequence (default AGTCAGATAAGATATCGCGT)"
   echo "  --ab-linker   Run alignment using AB-linker setup (default, non-AB linker trimming)"
   echo "  --pp=         Run pre-preprocessing command on reads before linker trimming (must be executable, default none)"
-  echo "  "
-  echo "  --bowtieidx= Bowtie index (deprecated, inactive)"
+  echo "  --macs-gsize=     Set genome size for macs2 peak calling (default=hs)"
 }
 
-TEMP=`getopt -o o:hvapm: -l output:,noskip,splitnum:,bowtieidx:,keep-tmp,lsf-queue:,forward-linker:,reverse-linker:,ab-linker,pp:,min-len: -n 'origami' -- "$@"`
+TEMP=`getopt -o o:hvapm: -l output:,noskip,splitnum:,keep-tmp,lsf-queue:,forward-linker:,reverse-linker:,ab-linker,pp:,min-len:,macs-gsize: -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -101,11 +101,6 @@ while [ $# -ge 1 ]; do
 		  SPLITNUM=$(expr "$2" \* 4)
 		  shift
 		  ;;
-		--bowtieidx)
-		  echo "Deprecated option (does not do anything)"
-		  BOWTIEIDX=$2
-		  shift
-		  ;;
 		--keep-tmp)
 		  KEEPTMP=yes
 		  ;;
@@ -131,6 +126,10 @@ while [ $# -ge 1 ]; do
 	    ;;
 	  -m|--min-len)
 	    MINREADLENGTH="$2"
+	    shift
+	    ;;
+	   --macs-gsize)
+	    MACSGSIZE="$2"
 	    shift
 	    ;;
 	esac
@@ -235,9 +234,9 @@ then
       
       dispatch "cat $OUTPUTDIR/tmp/r_same_aa_*.fq $OUTPUTDIR/tmp/r_same_bb_*.fq > $OUTPUTDIR/tmp/right_kept.fq"
 
-      dispatch "cat $OUTPUTDIR/tmp/l_diff_ab_*.fq $OUTPUTDIR/tmp/l_diff_ba_*.fq > $OUTPUTDIR/tmp/l_diff.fq"
+      dispatch "cat $OUTPUTDIR/tmp/l_diff_ab_*.fq $OUTPUTDIR/tmp/l_diff_ba_*.fq > $OUTPUTDIR/tmp/left_chimeric.fq"
       
-      dispatch "cat $OUTPUTDIR/tmp/r_diff_ab_*.fq $OUTPUTDIR/tmp/r_diff_ba_*.fq > $OUTPUTDIR/tmp/r_diff.fq"
+      dispatch "cat $OUTPUTDIR/tmp/r_diff_ab_*.fq $OUTPUTDIR/tmp/r_diff_ba_*.fq > $OUTPUTDIR/tmp/left_chimeric.fq"
 
       wait
     else
@@ -287,9 +286,9 @@ then
       
       dispatch "cat $OUTPUTDIR/tmp/r_same_aa.fq $OUTPUTDIR/tmp/r_same_bb.fq > $OUTPUTDIR/tmp/right_kept.fq"
 
-      dispatch "cat $OUTPUTDIR/tmp/l_diff_ab.fq $OUTPUTDIR/tmp/l_diff_ba.fq > $OUTPUTDIR/tmp/l_diff.fq"
+      dispatch "cat $OUTPUTDIR/tmp/l_diff_ab.fq $OUTPUTDIR/tmp/l_diff_ba.fq > $OUTPUTDIR/tmp/left_chimeric.fq"
       
-      dispatch "cat $OUTPUTDIR/tmp/r_diff_ab.fq $OUTPUTDIR/tmp/r_diff_ba.fq > $OUTPUTDIR/tmp/r_diff.fq"
+      dispatch "cat $OUTPUTDIR/tmp/r_diff_ab.fq $OUTPUTDIR/tmp/r_diff_ba.fq > $OUTPUTDIR/tmp/right_chimeric.fq"
 
 
     else
@@ -320,17 +319,28 @@ then
   ### Cleanup
   rm $OUTPUTDIR/tmp/l_*.fq $OUTPUTDIR/tmp/r_*.fq
 
-  dispatch bzip2 $OUTPUTDIR/tmp/left_untrimmed.fq
-  dispatch bzip2 $OUTPUTDIR/tmp/right_untrimmed.fq
-
+  if [ $USEABLINKER = 'yes' ]
+  then
+    dispatch "bzip2 $OUTPURDIR/tmp/left_chimeric.fq"    
+    dispatch "bzip2 $OUTPURDIR/tmp/right_chimeric.fq"
+  else
+    dispatch bzip2 $OUTPUTDIR/tmp/left_untrimmed.fq
+    dispatch bzip2 $OUTPUTDIR/tmp/right_untrimmed.fq
+  fi
+  
   wait
 
 fi
 
-## Keep untrimmed reads
-mv $OUTPUTDIR/tmp/left_untrimmed.fq.bz2 $OUTPUTDIR/.
-mv $OUTPUTDIR/tmp/right_untrimmed.fq.bz2 $OUTPUTDIR/.
-
+if [ $USEABLINKER = 'yes' ]
+then
+  mv $OUTPUTDIR/tmp/left_chimeric.fq.bz2 $OUTPUTDIR/.
+  mv $OUTPUTDIR/tmp/right_chimeric.fq.bz2 $OUTPUTDIR/.
+else
+  ## Keep untrimmed reads
+  mv $OUTPUTDIR/tmp/left_untrimmed.fq.bz2 $OUTPUTDIR/.
+  mv $OUTPUTDIR/tmp/right_untrimmed.fq.bz2 $OUTPUTDIR/.
+fi
 
 
 rm -f $OUTPUTDIR/tmp/left_unzip.fq  $OUTPUTDIR/tmp/right_unzip.fq
@@ -399,7 +409,7 @@ echo "Calling peaks"
 
 bedtools bamtobed -i $OUTPUTDIR/mapped_reads.bam > $OUTPUTDIR/tmp/reads.bed
 
-macs2 callpeak -t $OUTPUTDIR/tmp/reads.bed -n peaks --nomodel --shift 100 --outdir $OUTPUTDIR
+macs2 callpeak -t $OUTPUTDIR/tmp/reads.bed -n peaks -g $MACSGSIZE --nomodel --shift 100 --outdir $OUTPUTDIR
 
 if [[ "$KEEPTMP" == "no" ]];
 then
