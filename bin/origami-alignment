@@ -236,7 +236,7 @@ then
 
       dispatch "cat $OUTPUTDIR/tmp/l_diff_ab_*.fq $OUTPUTDIR/tmp/l_diff_ba_*.fq > $OUTPUTDIR/tmp/left_chimeric.fq"
       
-      dispatch "cat $OUTPUTDIR/tmp/r_diff_ab_*.fq $OUTPUTDIR/tmp/r_diff_ba_*.fq > $OUTPUTDIR/tmp/left_chimeric.fq"
+      dispatch "cat $OUTPUTDIR/tmp/r_diff_ab_*.fq $OUTPUTDIR/tmp/r_diff_ba_*.fq > $OUTPUTDIR/tmp/right_chimeric.fq"
 
       wait
     else
@@ -321,8 +321,8 @@ then
 
   if [ $USEABLINKER = 'yes' ]
   then
-    dispatch "bzip2 $OUTPURDIR/tmp/left_chimeric.fq"    
-    dispatch "bzip2 $OUTPURDIR/tmp/right_chimeric.fq"
+    dispatch "bzip2 $OUTPUTDIR/tmp/left_chimeric.fq"    
+    dispatch "bzip2 $OUTPUTDIR/tmp/right_chimeric.fq"
   else
     dispatch bzip2 $OUTPUTDIR/tmp/left_untrimmed.fq
     dispatch bzip2 $OUTPUTDIR/tmp/right_untrimmed.fq
