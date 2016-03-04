@@ -8,8 +8,10 @@ INTCOUNTFILE=raw-interactions.out
 TMPFILE=$RANDOM.peaks.bed
 TMPBAMPREFIX=bam$RANDOM.prefix
 BURNIN=100
-ITERATIONS=50000
+ITERATIONS=1000
 PRUNE=5
+SLOPDIST=0
+SLOPGENOME=null
 
 helpmenu() {
   if [ $# -eq 1 ];
@@ -22,11 +24,13 @@ helpmenu() {
   echo "  --iterations=[positive integer] Sets the number of iterations for running the MCMC estimation (default 50000)"
   echo "  --burn-in=[0 or positive integer] Sets the number of iterations to use as the burn-in period, separate from the --iterations (default 100, 0 means no burn-in period)"
   echo "  --prune=[0 or >=2] Sets the number of steps at which to take an iteration rather than prune it (default 5, 0 means no pruning)"
+  echo "  --slop-dist=[positive integer]  Set the slop distance on both ends of the peak (default 0, needs --slop-genome)"
+  echo "  --slop-genome=[file]      Genome annotation file for size of each chromosome (default none, needs --slop-dist)"
 }
 
 
 
-TEMP=`getopt -o h -l iterations:,burn-in:,prune: -n 'origami' -- "$@"`
+TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome: -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -51,6 +55,14 @@ while [ $# -ge 1 ]; do
 		  PRUNE="$1"
 		  shift
 		  ;;
+		--slop-dist)
+		  SLOPDIST="$2"
+		  shift
+		  ;;
+		--slop-genome)
+		  SLOPGENOME="$2"
+		  shift
+		  ;;
 	esac
 	shift
 done
@@ -61,13 +73,29 @@ then
   exit 1
 fi
 
+
 READSFILE=$1
 INPUTFILE=$2
 PREFIX=$3
 
+if ([ $SLOPDIST -eq 0 ] && [ $SLOPGENOME != "null" ]) || ([ $SLOPDIST -gt 0 ] && [ $SLOPGENOME = "null" ])
+then
+  helpmenu "Error: if specifying --slop-dist or --slop-genome, must specify the other"
+  exit 1
+fi
+
+
 echo "Identifying PET counts in peaks and interactions..."
 
 cut -f 1,2,3 $INPUTFILE | sort -k 1,1 -k 2,2n > $TMPFILE
+
+if [ $SLOPDIST -gt 0 ];
+then
+  OUTFILE=$PREFIX.slop.bed
+  bedtools slop -i $TMPFILE -g $SLOPGENOME -b $SLOPDIST | bedtools merge > $OUTFILE
+  cp $OUTFILE $TMPFILE
+fi
+  
 
 if [ ! -e "$PREFIX-raw-counts.out" ];
 then
