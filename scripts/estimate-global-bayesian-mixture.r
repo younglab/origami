@@ -2,9 +2,11 @@ library(GenomicRanges,quietly = !interactive())
 library(utils,quietly = !interactive())
 library(matrixStats,quietly = !interactive())
 
+calc.zscore <- function(v) (v-mean(v))/sd(v)
+
 estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=100,pruning=NULL,
                                                         with.distance.weight=F,multiply=T,show.progress=F,
-                                                        lambda0.init=1,lambda1.init=5) {
+                                                        lambda0.init=1,lambda1.init=5,suppress.counts.higher.than=30) {
   S <- nrow(ints)
   
   d <- GRanges(seqnames=as.character(depth$V1),ranges=IRanges(depth$V2,depth$V3),strand='*')
@@ -91,17 +93,23 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     ret$mp[[i]] <- vp
     ret$p1[[i+1]] <- pp
     
-    r0 <- sum(counts[vz==0])
-    n <- sum(vz==0)
+    cn <- counts[vz==0]
+    b <- cn<suppress.counts.higher.than
+    r0 <- sum(cn[b])
+    n <- sum(vz==0 & b)
     
     l0 <- rgamma(1,r0,n)
     
     l1 <- l0
-    r1 <- totcounts - r0 #sum(counts[vz==1])
+    
+    cn <- counts[vz==1]
+    b <- cn<suppress.counts.higher.than
+    r1 <- sum(cn[b])
+    n <- sum(vz==1 & b)
     
     
     
-    l1x <- rgamma(1,r1,S-n)#sum(vz==1))
+    l1x <- rgamma(1,r1,n)#sum(vz==1))
     l1 <- max(l1,l1x)
     
     ret$lambda0[i+1] <- l0
