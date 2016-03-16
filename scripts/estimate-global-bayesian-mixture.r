@@ -6,7 +6,8 @@ calc.zscore <- function(v) (v-mean(v))/sd(v)
 
 estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=100,pruning=NULL,
                                                         with.distance.weight=F,multiply=T,show.progress=F,
-                                                        lambda0.init=1,lambda1.init=5,suppress.counts.higher.than=30) {
+                                                        lambda0.init=1,lambda1.init=5,suppress.counts.higher.than=30,
+                                                        mini.model=T) {
   S <- nrow(ints)
   
   d <- GRanges(seqnames=as.character(depth$V1),ranges=IRanges(depth$V2,depth$V3),strand='*')
@@ -22,6 +23,10 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
   #if(any(is.na(intdist))) {
   #  intdist[is.na(intdist)] <- max(intdist,na.rm=T)
   #}
+  
+  if(is.null(pruning) || pruning < 1) {
+    pruning <- N+1 # will never prune
+  } 
   
   if(!multiply) {
     sdepth <- rowSums(cbind(d[m1],d[m2]))
@@ -45,31 +50,38 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     idx <- as.integer(colnames(inttable))<n
     
     z <- inttable[c(x1,x2),]
-    #print(z)
-    #print(idx)
+
     a <- if(!any(idx)) 0 else sum(z[,idx])
     b <- sum(z)-a
     c(a,b)
   },as.list(m1),as.list(m2),as.list(counts),SIMPLIFY=T))
   
   
-  depthscore <- floor(sdepth/msdepth)#floor(msdepth/sdepth)
+  depthscore <- floor(sdepth/msdepth)
   alphaparam <- 1+countm[,1]
   betaparam <- 1+depthscore+countm[,2]
   
-  #print(range(nint))
-  #print(c(msdepth,range(sdepth)))
+
   
   pp <- rep(.5,S)
   
-  ret <- list(z=vector("list",N),
-              p1=c(list(pp),vector("list",N)),
-              mp=vector("list",N),
-              lambda0=c(lambda0.init,rep(NA_real_,N)),
-              lambda1=c(lambda1.init,rep(NA_real_,N)),
-              intdist=intdist,
-              lambdad1=vector("list",N),
-              lambdad0=vector("list",N))
+  if (!mini.model) {
+    ret <- list(
+      z = vector("list",N),
+      p1 = c(list(pp),vector("list",N)),
+      mp = vector("list",N),
+      lambda0 = c(lambda0.init,rep(NA_real_,N)),
+      lambda1 = c(lambda1.init,rep(NA_real_,N)),
+      lambdad1 = vector("list",N),
+      lambdad0 = vector("list",N)
+    )
+  } else {
+    ret <- list(
+      lambda0 = c(lambda0.init,rep(NA_real_,N)),
+      lambda1 = c(lambda1.init,rep(NA_real_,N))
+    )
+    zm = rep(0,length(N))
+  }
   
   totcounts <- sum(counts)
   
@@ -77,7 +89,9 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
   
   
   if(show.progress) pb <- txtProgressBar()
-  #x <- sdepth/msdepth
+  
+  suppress <- counts > suppress.counts.higher.than
+  
   
   for( i in 1:N ) {
     lambda0 <- ret$lambda0[i]
@@ -99,27 +113,29 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     pp <- rbeta(S,alphaparam+vz,betaparam+(1-vz)) 
     
     
-    ret$z[[i]] <- vz
-    ret$mp[[i]] <- vp
-    ret$p1[[i+1]] <- pp
+    if(!mini.model) {
+      ret$z[[i]] <- vz
+      ret$mp[[i]] <- vp
+      ret$p1[[i+1]] <- pp
+    } else if(mini.model && i > burnin && ((i-burnin) %% pruning) != 0 ) {
+      ret$zm <- ret$zm + vz
+    }
     
-    cn <- counts[vz==0]
-    b <- cn<=suppress.counts.higher.than
-    r0 <- sum(cn[b])
-    n <- sum(vz==0 & b)
-    
+    b <- vz == 0 & !suppress
+    r0 <- sum(counts[b])
+    n <- sum(b)
+
     l0 <- rgamma(1,r0,n)
     
     l1 <- l0
     
-    cn <- counts[vz==1]
-    b <- cn<=suppress.counts.higher.than
-    r1 <- sum(cn[b])
-    n <- sum(vz==1 & b)
+    b <- vz == 1 & !suppress
+    r1 <- sum(counts[b])
+    n <- sum(b)
     
     
     
-    l1x <- rgamma(1,r1,n)#sum(vz==1))
+    l1x <- rgamma(1,r1,n)
     l1 <- max(l1,l1x)
     
     ret$lambda0[i+1] <- l0
@@ -143,20 +159,37 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     lambdad0 <- predict(s0,x)$y
     if(any(interchromsomal)) lambdad0[is.na(x)] <- 0
     
-    ret$lambdad1[[i]] <- lambdad1
-    ret$lambdad0[[i]] <- lambdad0
+    if( !mini.model) {
+      ret$lambdad1[[i]] <- lambdad1
+      ret$lambdad0[[i]] <- lambdad0
+    }
     if(show.progress) setTxtProgressBar(pb,i/N)
   }
   
   if(show.progress) close(pb)
   #ret <- list(s=l,l0=lambda0,l1=lambda1)
   if(!is.null(burnin) && is.numeric(burnin) && burnin > 0 && burnin < N) {
-    bn <- lapply(ret,function(l) l[1:burnin])
-    idx <- -(1:burnin)
-    ret <- lapply(ret,function(v) v[idx])
-    ret$burnin <- bn
+      bn <- lapply(ret,function(l) l[1:burnin])
+      idx <- -(1:burnin)
+      ret <- lapply(ret,function(v) v[idx])
+      ret$burnin <- bn
   }
-  ret <- c(ret,list(sdepth=sdepth,msdepth=msdepth))
+  if(!is.null(pruning) && pruning > 1) {
+    l <- length(ret$lambda0)
+    
+    idx <- seq(1,l,by=pruning)
+    w <- which(names(ret)=="burnin")
+    if(length(w)>0) {
+      bn <- ret$burnin
+      ret <- lapply(ret[-w],function(l) l[-idx])
+      ret$burnin <- bn
+    } else {
+      ret <- lapply(ret[-w],function(l) l[-idx])
+    }
+  } 
+  ret <- c(ret,list(sdepth=sdepth,msdepth=msdepth,intdist=intdist))
+  if(mini.model) ret <- c(ret,list(zm=zm))
+  
   ret
 }
 
@@ -243,7 +276,7 @@ estimate.global.bayesian.weighed.depth.mixture <- function(ints,depth,N=1100,bur
     ret <- lapply(ret,function(v) v[idx])
     ret$burnin <- bn
   }
-  ret <- c(ret,list(sdepth=sdepth,msdepth=msdepth))
+  ret <- c(ret,list(sdepth=sdepth,msdepth=msdepth,intdist=intdist))
   ret
 }
 
@@ -339,11 +372,15 @@ estimate.global.bayesian.no.depth.mixture <- function(ints,depth,N=1100,burnin=1
 
 
 extract.no.depth.bayesian.prob <- function(model) {
-  sapply(model$s,function(v) sum(v$z)/length(v$z))
+    sapply(model$s,function(v) sum(v$z)/length(v$z))
 }
 
 extract.global.bayesian.mixture.prob <- function(model) {
-  m <- do.call(rbind,model$z)
-  N <- nrow(m)
-  colSums(m)/N
+  if( "zm" %in% names(model)) {
+    return(model$zm / length(model$lambda0))
+  } else {
+    m <- do.call(rbind,model$z)
+    N <- nrow(m)
+    return(colSums(m)/N)
+  }
 }

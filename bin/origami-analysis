@@ -8,10 +8,11 @@ INTCOUNTFILE=raw-interactions.out
 TMPFILE=$RANDOM.peaks.bed
 TMPBAMPREFIX=bam$RANDOM.prefix
 BURNIN=100
-ITERATIONS=1000
+ITERATIONS=10000
 PRUNE=5
 SLOPDIST=0
 SLOPGENOME=null
+MINIMODEL=yes
 
 helpmenu() {
   if [ $# -eq 1 ];
@@ -19,18 +20,19 @@ helpmenu() {
     echo $1
   fi
   
-  echo "origami-analysis <mapped reads BAM> <peak BED file> <output prefix>"
+  echo "origami-analysis [options] <mapped reads BAM> <peak BED file> <output prefix>"
   echo "  -h help menu (this output)"
-  echo "  --iterations=[positive integer] Sets the number of iterations for running the MCMC estimation (default 50000)"
+  echo "  --iterations=[positive integer] Sets the number of iterations for running the MCMC estimation (default 10000)"
   echo "  --burn-in=[0 or positive integer] Sets the number of iterations to use as the burn-in period, separate from the --iterations (default 100, 0 means no burn-in period)"
   echo "  --prune=[0 or >=2] Sets the number of steps at which to take an iteration rather than prune it (default 5, 0 means no pruning)"
   echo "  --slop-dist=[positive integer]  Set the slop distance on both ends of the peak (default 0, needs --slop-genome)"
   echo "  --slop-genome=[file]      Genome annotation file for size of each chromosome (default none, needs --slop-dist)"
+  echo "  --save-full-model         Save data from the full model (save the "mini"-model data by default)"
 }
 
 
 
-TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome: -n 'origami' -- "$@"`
+TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -44,15 +46,15 @@ while [ $# -ge 1 ]; do
 			exit 0
 			;;
 		--iterations)
-		  ITERATIONS="$1"
+		  ITERATIONS="$2"
 		  shift
 		  ;;
 		--burn-in)
-		  BURNIN="$1"
+		  BURNIN="$2"
 		  shift
 		  ;;
 		--prune)
-		  PRUNE="$1"
+		  PRUNE="$2"
 		  shift
 		  ;;
 		--slop-dist)
@@ -62,6 +64,9 @@ while [ $# -ge 1 ]; do
 		--slop-genome)
 		  SLOPGENOME="$2"
 		  shift
+		  ;;
+		--save-full-model)
+		  MINIMODEL=no
 		  ;;
 	esac
 	shift
@@ -113,4 +118,4 @@ rm $TMPFILE
 
 echo "Estimating interaction belief..."
 
-Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE
+Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL
