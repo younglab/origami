@@ -2,9 +2,11 @@ library(GenomicRanges,quietly = !interactive())
 library(utils,quietly = !interactive())
 library(matrixStats,quietly = !interactive())
 
+calc.zscore <- function(v) (v-mean(v))/sd(v)
+
 estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=100,pruning=NULL,
                                                         with.distance.weight=F,multiply=T,show.progress=F,
-                                                        lambda0.init=1,lambda1.init=5) {
+                                                        lambda0.init=1,lambda1.init=5,suppress.counts.higher.than=30) {
   S <- nrow(ints)
   
   d <- GRanges(seqnames=as.character(depth$V1),ranges=IRanges(depth$V2,depth$V3),strand='*')
@@ -15,6 +17,11 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
   m2 <- match(g2,d)
   counts <- ints[,7]
   d <- depth[,4]
+  intdist <- distance(g1,g2)
+  interchromsomal <- is.na(intdist)
+  #if(any(is.na(intdist))) {
+  #  intdist[is.na(intdist)] <- max(intdist,na.rm=T)
+  #}
   
   if(!multiply) {
     sdepth <- rowSums(cbind(d[m1],d[m2]))
@@ -59,9 +66,14 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
               p1=c(list(pp),vector("list",N)),
               mp=vector("list",N),
               lambda0=c(lambda0.init,rep(NA_real_,N)),
-              lambda1=c(lambda1.init,rep(NA_real_,N)))
+              lambda1=c(lambda1.init,rep(NA_real_,N)),
+              intdist=intdist,
+              lambdad1=vector("list",N),
+              lambdad0=vector("list",N))
   
   totcounts <- sum(counts)
+  
+  lambdad1 <- lamdbad0 <- rep(0,length(counts))
   
   
   if(show.progress) pb <- txtProgressBar()
@@ -70,8 +82,8 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
   for( i in 1:N ) {
     lambda0 <- ret$lambda0[i]
     lambda1 <- ret$lambda1[i]
-    g1 <- pp*dpois(counts,lambda1)
-    g2 <- (1-pp) * dpois(counts,lambda0)
+    g1 <- pp*dpois(counts,lambda1 + lambdad1)
+    g2 <- (1-pp) * dpois(counts,lambda0 + lamdbad0)
     
     vp <- g1/rowSums(cbind(g1,g2)) 
     
@@ -91,24 +103,48 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     ret$mp[[i]] <- vp
     ret$p1[[i+1]] <- pp
     
-    r0 <- sum(counts[vz==0])
-    n <- sum(vz==0)
+    cn <- counts[vz==0]
+    b <- cn<=suppress.counts.higher.than
+    r0 <- sum(cn[b])
+    n <- sum(vz==0 & b)
     
     l0 <- rgamma(1,r0,n)
     
     l1 <- l0
-    r1 <- totcounts - r0 #sum(counts[vz==1])
+    
+    cn <- counts[vz==1]
+    b <- cn<=suppress.counts.higher.than
+    r1 <- sum(cn[b])
+    n <- sum(vz==1 & b)
     
     
     
-    l1x <- rgamma(1,r1,S-n)#sum(vz==1))
+    l1x <- rgamma(1,r1,n)#sum(vz==1))
     l1 <- max(l1,l1x)
     
     ret$lambda0[i+1] <- l0
     ret$lambda1[i+1] <- l1
     
-    #print(c(r0,n,r1,S-n))
-    #print(c(l0,l1))
+    
+    x <- log10(intdist[vz==1 & !interchromsomal]+1)
+
+    s1 <- smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
+    x <- log10(intdist[vz==0 & !interchromsomal]+1)
+    
+    s0 <- smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0))
+    
+    x <- log10(intdist)
+    if(any(interchromsomal)) x[interchromsomal] <- 0
+    
+    lambdad1 <- predict(s1,x)$y
+    if(any(interchromsomal)) lambdad1[is.na(x)] <- 0 ## is there better way to handle this?
+    
+
+    lambdad0 <- predict(s0,x)$y
+    if(any(interchromsomal)) lambdad0[is.na(x)] <- 0
+    
+    ret$lambdad1[[i]] <- lambdad1
+    ret$lambdad0[[i]] <- lambdad0
     if(show.progress) setTxtProgressBar(pb,i/N)
   }
   

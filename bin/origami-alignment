@@ -67,11 +67,13 @@ helpmenu() {
   echo "  --forward-linker=  Set the foward-linker sequence (default ACGCGATATCTTATCTGACT)"
   echo "  --reverse-linker=  Set the reverse-linker sequence (default AGTCAGATAAGATATCGCGT)"
   echo "  --ab-linker   Run alignment using AB-linker setup (default, non-AB linker trimming)"
+  echo "  --a-linker=   Set the A-linker sequence (default, CTGCTGTCCG, implies --ab-linker)"
+  echo "  --b-linker=   Set the B-linker sequence (default, CTGCTGTCAT, implies --ab-linker)"
   echo "  --pp=         Run pre-preprocessing command on reads before linker trimming (must be executable, default none)"
   echo "  --macs-gsize=     Set genome size for macs2 peak calling (default=hs)"
 }
 
-TEMP=`getopt -o o:hvapm: -l output:,noskip,splitnum:,keep-tmp,lsf-queue:,forward-linker:,reverse-linker:,ab-linker,pp:,min-len:,macs-gsize: -n 'origami' -- "$@"`
+TEMP=`getopt -o o:hvapm: -l output:,noskip,splitnum:,keep-tmp,lsf-queue:,forward-linker:,reverse-linker:,ab-linker,a-linker:,b-linker:,pp:,min-len:,macs-gsize: -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -119,6 +121,16 @@ while [ $# -ge 1 ]; do
 		  ;;
 		--ab-linker)
 		  USEABLINKER=yes
+		  ;;
+		--a-linker)
+		  ABLINKERA="$2"
+		  USEABLINKER=yes
+		  shift
+		  ;;
+		--b-linker)
+		  ABLINKERB="$2"
+		  USEABLINKER=yes
+		  shift
 		  ;;
 	  --pp)
 	    PREPROCESSINGCMD="$2"
@@ -185,6 +197,13 @@ case "$FILESUFFIX" in
 esac
 
 echo "Removing adapter sequences on $LEFTREADS and $RIGHTREADS"
+if [[ $USEABLINKER = "yes" ]]
+then
+  echo "Running in AB-linker trimming mode"
+else
+  echo "Running in long-linker trimming mode"
+fi
+
 if [[ "$SKIP" == "off" || ! -e "$OUTPUTDIR/mapped_reads.bam" ]];
 then
 
