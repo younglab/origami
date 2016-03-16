@@ -104,7 +104,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     ret$p1[[i+1]] <- pp
     
     cn <- counts[vz==0]
-    b <- cn<suppress.counts.higher.than
+    b <- cn<=suppress.counts.higher.than
     r0 <- sum(cn[b])
     n <- sum(vz==0 & b)
     
@@ -113,7 +113,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     l1 <- l0
     
     cn <- counts[vz==1]
-    b <- cn<suppress.counts.higher.than
+    b <- cn<=suppress.counts.higher.than
     r1 <- sum(cn[b])
     n <- sum(vz==1 & b)
     
@@ -125,11 +125,11 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     ret$lambda0[i+1] <- l0
     ret$lambda1[i+1] <- l1
     
-    #return(list(log10(intdist[vz==1]),counts[vz==1]-l1))
     
-    x <- log10(intdist[vz==1 & !interchromsomal])
+    x <- log10(intdist[vz==1 & !interchromsomal]+1)
+
     s1 <- smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
-    x <- log10(intdist[vz==0 & !interchromsomal])
+    x <- log10(intdist[vz==0 & !interchromsomal]+1)
     
     s0 <- smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0))
     
