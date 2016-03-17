@@ -11,6 +11,7 @@ if( !interactive() ) {
   burnin <- if( !is.na(args[6])) as.integer(args[6]) else 100
   prune <- if( !is.na(args[7])) as.integer(args[7]) else 5
   minimodel <- if( !is.na(args[8])) args[8]=="yes" else T
+  usedistance <- if( !is.na(args[9])) args[9]=="yes" else T
   
   args <- commandArgs()
   
@@ -59,7 +60,8 @@ if( !interactive() ){
   cat("Running two-component Bayesian mixture model...\n")
 
     #cat("Model 1\n")
-  gbayes.m1 <- estimate.global.bayesian.mixture(p,depth,inttable,burnin=burnin,N=iterations+burnin,pruning=prune,show.progress=T,mini.model=minimodel)
+  gbayes.m1 <- estimate.global.bayesian.mixture(p,depth,inttable,burnin=burnin,N=iterations+burnin,pruning=prune,show.progress=T,mini.model=minimodel,
+                                                with.distance.weight=usedistance)
   gbayesp1 <- extract.global.bayesian.mixture.prob(gbayes.m1)
   
   #cat("Model 2\n")

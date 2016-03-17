@@ -141,27 +141,28 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     ret$lambda0[i+1] <- l0
     ret$lambda1[i+1] <- l1
     
-    
-    x <- log10(intdist[vz==1 & !interchromsomal]+1)
-
-    s1 <- smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
-    x <- log10(intdist[vz==0 & !interchromsomal]+1)
-    
-    s0 <- smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0))
-    
-    x <- log10(intdist)
-    if(any(interchromsomal)) x[interchromsomal] <- 0
-    
-    lambdad1 <- predict(s1,x)$y
-    if(any(interchromsomal)) lambdad1[is.na(x)] <- 0 ## is there better way to handle this?
-    
-
-    lambdad0 <- predict(s0,x)$y
-    if(any(interchromsomal)) lambdad0[is.na(x)] <- 0
-    
-    if( !mini.model) {
-      ret$lambdad1[[i]] <- lambdad1
-      ret$lambdad0[[i]] <- lambdad0
+    if(with.distance.weight) {
+      x <- log10(intdist[vz==1 & !interchromsomal]+1)
+      
+      s1 <- smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
+      x <- log10(intdist[vz==0 & !interchromsomal]+1)
+      
+      s0 <- smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0))
+      
+      x <- log10(intdist)
+      if(any(interchromsomal)) x[interchromsomal] <- 0
+      
+      lambdad1 <- predict(s1,x)$y
+      if(any(interchromsomal)) lambdad1[is.na(x)] <- 0 ## is there better way to handle this?
+      
+      
+      lambdad0 <- predict(s0,x)$y
+      if(any(interchromsomal)) lambdad0[is.na(x)] <- 0
+      
+      if( !mini.model) {
+        ret$lambdad1[[i]] <- lambdad1
+        ret$lambdad0[[i]] <- lambdad0
+      }
     }
     if(show.progress) setTxtProgressBar(pb,i/N)
   }
