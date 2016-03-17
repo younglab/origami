@@ -80,7 +80,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       lambda0 = c(lambda0.init,rep(NA_real_,N)),
       lambda1 = c(lambda1.init,rep(NA_real_,N))
     )
-    zm = rep(0,length(N))
+    zm <- rep(0,length(counts))
   }
   
   totcounts <- sum(counts)
@@ -118,7 +118,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       ret$mp[[i]] <- vp
       ret$p1[[i+1]] <- pp
     } else if(mini.model && i > burnin && ((i-burnin) %% pruning) != 0 ) {
-      ret$zm <- ret$zm + vz
+      zm <- zm + vz
     }
     
     b <- vz == 0 & !suppress
@@ -184,7 +184,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       ret <- lapply(ret[-w],function(l) l[-idx])
       ret$burnin <- bn
     } else {
-      ret <- lapply(ret[-w],function(l) l[-idx])
+      ret <- lapply(ret,function(l) l[-idx])
     }
   } 
   ret <- c(ret,list(sdepth=sdepth,msdepth=msdepth,intdist=intdist))
