@@ -3,6 +3,11 @@
 use strict;
 use Switch;
 use POSIX qw(floor);
+use Getopt::Long;
+
+sub helpmenu {
+  print "origami-conversion <bed/bedpe/washu> <results file> <score column>\n";
+}
 
 sub tobed {
   my $c = $_[0];
@@ -44,9 +49,22 @@ sub towashu {
   }
 }
 
-if( $#ARGV < 2 ) {
-  die "origami-conversion <bed/bedpe/washu> <results file> <score column>";
+my $showhelp = '';
+
+GetOptions("help|h"=>\$showhelp)
+or die "Error in parsing arguments";
+
+if( $showhelp eq 1 ) {
+  helpmenu();
+  exit 0;
 }
+
+if( $#ARGV < 2 ) {
+  helpmenu("Not enough arguments passed");
+  exit 1;
+}
+
+
 
 my $option = $ARGV[0];
 my $file = $ARGV[1];
