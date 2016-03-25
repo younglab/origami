@@ -14,6 +14,7 @@ SLOPDIST=0
 SLOPGENOME=null
 MINIMODEL=yes
 USEDISTANCE=yes
+ZSCOREFILTER=no
 
 helpmenu() {
   if [ $# -eq 1 ];
@@ -30,11 +31,12 @@ helpmenu() {
   echo "  --slop-dist=[positive integer]  Set the slop distance on both ends of the peak (default 0, needs --slop-genome)"
   echo "  --slop-genome=[file]      Genome annotation file for size of each chromosome (default none, needs --slop-dist)"
   echo "  --save-full-model         Save data from the full model (save the "mini"-model data by default)"
+  echo "  --peak-count-filter=[zscore]   Filter peaks with greater than z-score (default no filtering)"
 }
 
 
 
-TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance -n 'origami' -- "$@"`
+TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter: -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -73,6 +75,10 @@ while [ $# -ge 1 ]; do
 		--without-distance)
 		  USEDISTANCE=no
 		  ;;
+		--peak-count-filter)
+		  ZSCOREFILTER="$2"
+		  shift
+		  ;;
 	esac
 	shift
 done
@@ -110,6 +116,18 @@ fi
 if [ ! -e "$PREFIX-raw-counts.out" ];
 then
   bedtools coverage -counts -abam $READSFILE -b $TMPFILE > $PREFIX-raw-counts.out
+fi
+
+if [ $ZSCOREFILTER != "no" ];
+then
+  FILTERBEDTMP=$RANDOM.keeppeaks.bed
+  TRANSTMP=$RANDOM.trans.out
+  Rscript $SCRIPTDIR/peaks-zscore.r $PREFIX-raw-counts.out $FILTERBEDTMP $ZSCOREFILTER
+  bedtools intersect -wa -a $PREFIX-raw-counts.out -b $FILTERBEDTMP > $TRANSTMP
+  mv $TRANSTMP $PREFIX-raw-counts.out ## removed filtered counts
+  bedtools intersect -wa -a $TMPFILE -b $FILTERBEDTMP > $TRANSTMP
+  mv $TRANSTMP $TMPFILE ## remove filtered peaks
+  rm $FILTERBEDTMP $TRANSTMP
 fi
 
 if [ ! -e "$PREFIX-raw-int-counts.txt" ];
