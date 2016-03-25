@@ -127,7 +127,7 @@ then
   mv $TRANSTMP $PREFIX-raw-counts.out ## removed filtered counts
   bedtools intersect -wa -a $TMPFILE -b $FILTERBEDTMP > $TRANSTMP
   mv $TRANSTMP $TMPFILE ## remove filtered peaks
-  rm $FILTERBEDTMP $TRANSTMP
+  rm $FILTERBEDTMP
 fi
 
 if [ ! -e "$PREFIX-raw-int-counts.txt" ];
