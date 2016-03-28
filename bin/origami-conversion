@@ -85,7 +85,12 @@ my $option = $ARGV[0];
 my $file = $ARGV[1];
 my $column = $ARGV[2];
 
-die "$file does not exist" unless -e $file;
+if( $file eq '-' ) {
+  $file = "<&STDIN";
+} elsif( ! -e $file ) {
+  die "$file does not exist!";
+}
+
 die "Score column is not a number" unless $column =~ /\d+/;
 
 open(F,"$file") or die "Cannot open $!";
