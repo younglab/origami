@@ -406,13 +406,10 @@ then
 
   wait
 
-  dispatch "$BINDIR/mapped-reads-merge $OUTPUTDIR/tmp/left_kept.sorted.bam $OUTPUTDIR/tmp/right_kept.sorted.bam $OUTPUTDIR/mapped_reads.bam"
+  dispatch "$BINDIR/mapped-reads-merge $OUTPUTDIR/tmp/left_kept.sorted.bam $OUTPUTDIR/tmp/right_kept.sorted.bam $OUTPUTDIR/mapped_reads.bam $OUTPUTDIR/logs/alignment-statistics.txt"
 
   wait
 
-  #dispatch "samtools sort -Obam -Ttmp $OUTPUTDIR/tmp/mapped_reads.bam > $OUTPUTDIR/mapped_reads.bam"
-
-  #wait
 
   rm $OUTPUTDIR/tmp/left_kept.sorted.bam $OUTPUTDIR/tmp/right_kept.sorted.bam
 
