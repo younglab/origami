@@ -7,6 +7,12 @@
 
 using namespace BamTools;
 
+namespace {
+  int calc_rounded_perc(double num,double denom) {
+    std::floor(num/denom*100);
+  }
+}
+
 int main(int argc,char **argv) {
   
     if( argc < 5) {
@@ -32,10 +38,10 @@ int main(int argc,char **argv) {
     writer.Open(outputfile,header,references);
     
     BamAlignment l, r;
-    unsigned long totalreads = 0, leftaligned = 0, rightaligned = 0, leftnotaligned = 0, rightnotaligned = 0,
+    unsigned long totalpairs = 0, leftaligned = 0, rightaligned = 0, leftnotaligned = 0, rightnotaligned = 0,
       pairmapped=0,singleton=0,neither=0;
     while( left.GetNextAlignment(l) && right.GetNextAlignment(r)) {
-        totalreads++;
+        totalpairs++;
       
         if(l.IsMapped()) {
           leftaligned++;
@@ -85,10 +91,10 @@ int main(int argc,char **argv) {
     
     logfile << "Alignment statistics: " << std::endl;
     logfile << "Total Read Pairs: " << totalreads << std::endl;
-    logfile << "Total Mapping Reads: " << (leftaligned+rightaligned) << "(" << std::floor((leftaligned+rightaligned)/(2*totalreads)*100) << "%)" << std::endl;
-    logfile << "Both Pairs Mapped: " << (pairmapped) << "(" << std::floor(pairmapped/totalreads)*100 << "%)" << std::endl;
-    logfile << "Singletons: " << singleton << "(" << std::floor(singleton/totalreads)*100 << "%)" << std::endl;
-    logfile << "Unmapped Pairs: " << neither << "(" << std::floor(neither/totalreads)*100 << "%)" << std::endl;
+    logfile << "Total Mapping Reads: " << (leftaligned+rightaligned) << " (" << calc_rounded_perc(leftaligned+rightaligned,2*totalpairs) << "%)" << std::endl;
+    logfile << "Both Pairs Mapped: " << (pairmapped) << " (" << calc_rounded_perc(pairmapped,totalpairs) << "%)" << std::endl;
+    logfile << "Singletons: " << singleton << " (" << calc_rounded_perc(singleton,totalreads) << "%)" << std::endl;
+    logfile << "Unmapped Pairs: " << neither << " (" << calc_rounded_perc(neither,totalreads) << "%)" << std::endl;
     
     logfile.close();
     
