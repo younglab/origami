@@ -9,7 +9,7 @@ using namespace BamTools;
 
 namespace {
   int calc_rounded_perc(double num,double denom) {
-    std::floor(num/denom*100);
+    return(std::floor(num/denom*100));
   }
 }
 
@@ -90,11 +90,11 @@ int main(int argc,char **argv) {
     logfile.open(reportfile);
     
     logfile << "Alignment statistics: " << std::endl;
-    logfile << "Total Read Pairs: " << totalreads << std::endl;
+    logfile << "Total Read Pairs: " << totalpairs << std::endl;
     logfile << "Total Mapping Reads: " << (leftaligned+rightaligned) << " (" << calc_rounded_perc(leftaligned+rightaligned,2*totalpairs) << "%)" << std::endl;
     logfile << "Both Pairs Mapped: " << (pairmapped) << " (" << calc_rounded_perc(pairmapped,totalpairs) << "%)" << std::endl;
-    logfile << "Singletons: " << singleton << " (" << calc_rounded_perc(singleton,totalreads) << "%)" << std::endl;
-    logfile << "Unmapped Pairs: " << neither << " (" << calc_rounded_perc(neither,totalreads) << "%)" << std::endl;
+    logfile << "Singletons: " << singleton << " (" << calc_rounded_perc(singleton,totalpairs) << "%)" << std::endl;
+    logfile << "Unmapped Pairs: " << neither << " (" << calc_rounded_perc(neither,totalpairs) << "%)" << std::endl;
     
     logfile.close();
     

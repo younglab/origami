@@ -1,8 +1,11 @@
 #!/bin/bash
 
+## helper variables
 BASEDIR=$(dirname $0)
 BINDIR=$BASEDIR/../bin
 SCRIPTDIR=$BASEDIR/../scripts
+
+### command line options
 OUTPUTDIR=output
 VERBOSE=off
 SKIP=on
@@ -19,6 +22,9 @@ USEABLINKER=no
 PREPROCESSINGCMD=cat
 MINREADLENGTH=15
 MACSGSIZE=hs
+
+## other variables
+ORIGINALCMD="$0 $@"
 
 
 verbose() {
@@ -176,6 +182,8 @@ mkdir $OUTPUTDIR/tmp
 verbose "Creating logs directory"
 mkdir $OUTPUTDIR/logs
 
+echo "Running origami with the following command line: $ORIGINALCMD" > $OUTPUTDIR/logs/alignment-execution.txt
+
 if [[ "$VERBOSE" != "on" ]] && [[ "$PARALLEL" == "on" ]];
 then
   export BSUB_QUIET=Y
@@ -207,7 +215,6 @@ fi
 if [[ "$SKIP" == "off" || ! -e "$OUTPUTDIR/mapped_reads.bam" ]];
 then
 
-  ## structure of script influenced by Diego's work
 
   if [ $PARALLEL = "on" ]
   then
@@ -217,23 +224,13 @@ then
     dispatch "$CATFUNC $RIGHTREADS | $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/rightreads"
   
     wait 
-#    dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/leftreads"
-    
-#    dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/right_reads.fq $OUTPUTDIR/tmp/rightreads"
-  
-#    wait
 
-  
-#    dispatch "bzip2 $OUTPUTDIR/tmp/left_reads.fq"
-    
-#    dispatch "bzip2 $OUTPUTDIR/tmp/right_reads.fq"
-
-#    wait
-    
     ## One assumption here is that split names the files in the same linear order -- maybe this should be done differently?
     LEFTREADS=($(ls $OUTPUTDIR/tmp/leftreads*))
     RIGHTREADS=($(ls $OUTPUTDIR/tmp/rightreads*))
     
+    ## structure of read trimming code influenced by Diego's work
+
     if [ $USEABLINKER = "yes" ]
     then
     
@@ -281,6 +278,9 @@ then
 
       wait
     fi
+    
+    $SCRIPTDIR/make-trimmed-reads-stat-report.pl dir $OUTPUTDIR/tmp $OUTPUTDIR/logs/trimming-report.txt
+    
     rm $OUTPUTDIR/tmp/leftreads* $OUTPUTDIR/tmp/rightreads*
 
   else
