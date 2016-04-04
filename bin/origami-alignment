@@ -18,7 +18,10 @@ FORWARDLINKER="ACGCGATATCTTATCTGACT"
 REVERSELINKER="AGTCAGATAAGATATCGCGT"
 ABLINKERA="CTGCTGTCCG"
 ABLINKERB="CTGCTGTCAT"
+ABLINKERAREV="CGGACAGCAG"
+ABLINKERBREV="ATGACAGCAG"
 USEABLINKER=no
+USEABREVLINKER=no
 PREPROCESSINGCMD=cat
 MINREADLENGTH=15
 MACSGSIZE=hs
@@ -79,7 +82,7 @@ helpmenu() {
   echo "  --macs-gsize=     Set genome size for macs2 peak calling (default=hs)"
 }
 
-TEMP=`getopt -o o:hvapm: -l output:,noskip,splitnum:,keep-tmp,lsf-queue:,forward-linker:,reverse-linker:,ab-linker,a-linker:,b-linker:,pp:,min-len:,macs-gsize: -n 'origami' -- "$@"`
+TEMP=`getopt -o o:hvapm: -l output:,noskip,splitnum:,keep-tmp,lsf-queue:,forward-linker:,reverse-linker:,ab-linker,a-linker:,b-linker:,pp:,min-len:,macs-gsize:,with-ab-reverse,a-rev-linker:,b-rev-linker: -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -138,7 +141,19 @@ while [ $# -ge 1 ]; do
 		  USEABLINKER=yes
 		  shift
 		  ;;
-	  --pp)
+		--with-ab-reverse)
+		  USEABREVLINKER=yes
+		  USEABLINKER=yes
+		  ;;
+		--a-rev-linker)
+		  ABLINKERAREV="$2"
+		  shift
+		  ;;
+		--b-rev-linker)
+		  ABLINKERBREV="$2"
+		  shift
+		  ;;
+		--pp)
 	    PREPROCESSINGCMD="$2"
 	    shift
 	    ;;
@@ -234,14 +249,27 @@ then
     if [ $USEABLINKER = "yes" ]
     then
     
-      for((i=0;i<${#LEFTREADS[@]};++i)); do
-        dispatch cutadapt -f fastq -n 3 --overlap 10 -e 0 -m $MINREADLENGTH -a $ABLINKERA -A $ABLINKERA -o $OUTPUTDIR/tmp/l_same_aa_$i.fq -p $OUTPUTDIR/tmp/r_same_aa_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+      if [ $USEABREVLINKER = "yes" ]
+      then
+        AAPARAM="-a $ABLINKERA -A $ABLINKERA -a $ABLINKERAREV -A $ABLINKERAREV"
+        BBPARAM="-a $ABLINKERB -A $ABLINKERB -a $ABLINKERBREV -A $ABLINKERBREV"
+        ABPARAM="-a $ABLINKERA -A $ABLINKERB -a $ABLINKERAREV -A $ABLINKERBREV"
+        BAPARAM="-a $ABLINKERB -A $ABLINKERA -a $ABLINKERBREV -A $ABLINKERAREV"
+      else
+        AAPARAM="-a $ABLINKERA -A $ABLINKERA"
+        BBPARAM="-a $ABLINKERB -A $ABLINKERB"
+        ABPARAM="-a $ABLINKERA -A $ABLINKERB"
+        BAPARAM="-a $ABLINKERB -A $ABLINKERA"
+      fi
       
-        dispatch cutadapt -f fastq -n 3 --overlap 10 -e 0 -m $MINREADLENGTH -a $ABLINKERB -A $ABLINKERB -o $OUTPUTDIR/tmp/l_same_bb_$i.fq -p $OUTPUTDIR/tmp/r_same_bb_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+      for((i=0;i<${#LEFTREADS[@]};++i)); do
+        dispatch cutadapt -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $AAPARAM -o $OUTPUTDIR/tmp/l_same_aa_$i.fq -p $OUTPUTDIR/tmp/r_same_aa_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+      
+        dispatch cutadapt -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BBPARAM -o $OUTPUTDIR/tmp/l_same_bb_$i.fq -p $OUTPUTDIR/tmp/r_same_bb_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
 
-        dispatch cutadapt -f fastq -n 3 --overlap 10 -e 0 -m $MINREADLENGTH -a $ABLINKERA -A $ABLINKERB -o $OUTPUTDIR/tmp/l_diff_ab_$i.fq -p $OUTPUTDIR/tmp/r_diff_ab_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+        dispatch cutadapt -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $ABPARAM -o $OUTPUTDIR/tmp/l_diff_ab_$i.fq -p $OUTPUTDIR/tmp/r_diff_ab_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
 
-        dispatch cutadapt -f fastq -n 3 --overlap 10 -e 0 -m $MINREADLENGTH -a $ABLINKERB -A $ABLINKERA -o $OUTPUTDIR/tmp/l_diff_ba_$i.fq -p $OUTPUTDIR/tmp/r_diff_ba_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+        dispatch cutadapt -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BAPARAM -o $OUTPUTDIR/tmp/l_diff_ba_$i.fq -p $OUTPUTDIR/tmp/r_diff_ba_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
       done
       
       wait
@@ -293,13 +321,27 @@ then
     
     if [ $USEABLINKER = "yes" ]
     then
-      dispatch cutadapt -n 3 --overlap 10 -e 0 -m $MINREADLENGTH -a $ABLINKERA -A $ABLINKERA -o $OUTPUTDIR/tmp/l_same_aa.fq -p $OUTPUTDIR/tmp/r_same_aa.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+    
+      if [ $USEABREVLINKER = "yes" ]
+      then
+        AAPARAM="-a $ABLINKERA -A $ABLINKERA -a $ABLINKERAREV -A $ABLINKERAREV"
+        BBPARAM="-a $ABLINKERB -A $ABLINKERB -a $ABLINKERBREV -A $ABLINKERBREV"
+        ABPARAM="-a $ABLINKERA -A $ABLINKERB -a $ABLINKERAREV -A $ABLINKERBREV"
+        BAPARAM="-a $ABLINKERB -A $ABLINKERA -a $ABLINKERBREV -A $ABLINKERAREV"
+      else
+        AAPARAM="-a $ABLINKERA -A $ABLINKERA"
+        BBPARAM="-a $ABLINKERB -A $ABLINKERB"
+        ABPARAM="-a $ABLINKERA -A $ABLINKERB"
+        BAPARAM="-a $ABLINKERB -A $ABLINKERA"
+      fi
+    
+      dispatch cutadapt -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $AAPARAM -o $OUTPUTDIR/tmp/l_same_aa.fq -p $OUTPUTDIR/tmp/r_same_aa.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
       
-      dispatch cutadapt -n 3 --overlap 10 -e 0 -m $MINREADLENGTH -a $ABLINKERB -A $ABLINKERB -o $OUTPUTDIR/tmp/l_same_bb.fq -p $OUTPUTDIR/tmp/r_same_bb.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+      dispatch cutadapt -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BBPARAM -o $OUTPUTDIR/tmp/l_same_bb.fq -p $OUTPUTDIR/tmp/r_same_bb.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
 
-      dispatch cutadapt -n 3 --overlap 10 -e 0 -m $MINREADLENGTH -a $ABLINKERA -A $ABLINKERB -o $OUTPUTDIR/tmp/l_diff_ab.fq -p $OUTPUTDIR/tmp/r_diff_ab.fq  $OUTPUTDIR/tmp/right_reads.fq
+      dispatch cutadapt -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $ABPARAM -o $OUTPUTDIR/tmp/l_diff_ab.fq -p $OUTPUTDIR/tmp/r_diff_ab.fq  $OUTPUTDIR/tmp/right_reads.fq
 
-      dispatch cutadapt -n 3 --overlap 10 -e 0 -m $MINREADLENGTH -a $ABLINKERB -A $ABLINKERA -o $OUTPUTDIR/tmp/l_diff_ba.fq -p $OUTPUTDIR/tmp/r_diff_ba.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+      dispatch cutadapt -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BAPARAM -o $OUTPUTDIR/tmp/l_diff_ba.fq -p $OUTPUTDIR/tmp/r_diff_ba.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
 
       dispatch "cat $OUTPUTDIR/tmp/l_same_aa.fq $OUTPUTDIR/tmp/l_same_bb.fq > $OUTPUTDIR/tmp/left_kept.fq"
       
