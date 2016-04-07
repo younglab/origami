@@ -10,7 +10,7 @@ my $showhelp = '';
 my $center = 0;
 
 GetOptions("help|h"=>\$showhelp,
-            "center|c"=>\$center)
+            "center|c=100"=>\$center)
 or die "Error in parsing arguments";
 
 
@@ -55,14 +55,18 @@ sub towashu {
     next unless $arr[0] eq $arr[3]; # Remove interchromosomal interactions
     next if $arr[0] =~ /chrM/; # the browser doesn't like chrM
     
-    if($center) {
+    if($center>0) {
       my $mid1 = ($end1-$start1)/2;
       my $mid2 = ($end2-$start2)/2;
       
-      $end1 = $start1+$mid1+50;
-      $start1 = $start1+$mid1-50;
-      $end2 = $start2+$mid2+50;
-      $start2 = $start2+$mid2-50;
+      $center++ if( ($center%2) != 0 );
+      
+      my $half = $center/2;
+      
+      $end1 = $start1+$mid1+$half;
+      $start1 = $start1+$mid1-$half;
+      $end2 = $start2+$mid2+$half;
+      $start2 = $start2+$mid2-$half;
     }
   
     print "$chrom1:$start1-$end1\t$chrom2:$start2-$end2\t$arr[5+$c]\n";
