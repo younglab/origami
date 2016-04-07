@@ -248,18 +248,20 @@ then
 
     if [ $USEABLINKER = "yes" ]
     then
-    
+
       if [ $USEABREVLINKER = "yes" ]
       then
         AAPARAM="-a $ABLINKERA -A $ABLINKERA -a $ABLINKERAREV -A $ABLINKERAREV"
         BBPARAM="-a $ABLINKERB -A $ABLINKERB -a $ABLINKERBREV -A $ABLINKERBREV"
         ABPARAM="-a $ABLINKERA -A $ABLINKERB -a $ABLINKERAREV -A $ABLINKERBREV"
         BAPARAM="-a $ABLINKERB -A $ABLINKERA -a $ABLINKERBREV -A $ABLINKERAREV"
+        NPARAM="-a $ABLINKERA -a $ABLINKERB -a $ABLINKERAREV -a $ABLINKERBREV -A $ABLINKERA -A $ABLINKERB -A $ABLINKERAREV -A $ABLINKERBREV"
       else
         AAPARAM="-a $ABLINKERA -A $ABLINKERA"
         BBPARAM="-a $ABLINKERB -A $ABLINKERB"
         ABPARAM="-a $ABLINKERA -A $ABLINKERB"
         BAPARAM="-a $ABLINKERB -A $ABLINKERA"
+        NPARAM="-a $ABLINKERA -a $ABLINKERB -A $ABLINKERA -A $ABLINKERB"
       fi
       
       for((i=0;i<${#LEFTREADS[@]};++i)); do
@@ -270,6 +272,9 @@ then
         dispatch cutadapt -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $ABPARAM -o $OUTPUTDIR/tmp/l_diff_ab_$i.fq -p $OUTPUTDIR/tmp/r_diff_ab_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
 
         dispatch cutadapt -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BAPARAM -o $OUTPUTDIR/tmp/l_diff_ba_$i.fq -p $OUTPUTDIR/tmp/r_diff_ba_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+        
+        dispatch cutadapt -f fastq -n 3 --overlap 10 -e 0 --discard-trimmed -m $MINREADLENGTH $NPARAM -o $OUTPUTDIR/tmp/l_neither_$i.fq -p $OUTPUTDIR/tmp/r_neither_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+
       done
       
       wait
@@ -281,6 +286,10 @@ then
       dispatch "cat $OUTPUTDIR/tmp/l_diff_ab_*.fq $OUTPUTDIR/tmp/l_diff_ba_*.fq > $OUTPUTDIR/tmp/left_chimeric.fq"
       
       dispatch "cat $OUTPUTDIR/tmp/r_diff_ab_*.fq $OUTPUTDIR/tmp/r_diff_ba_*.fq > $OUTPUTDIR/tmp/right_chimeric.fq"
+      
+      dispatch "cat $OUTPUTDIR/tmp/l_neither_*.fq > $OUTPUTDIR/tmp/left_untrimmed.fq"
+      
+      dispatch "cat $OUTPUTDIR/tmp/r_neither_*.fq > $OUTPUTDIR/tmp/right_untrimmed.fq"
 
       wait
     else
@@ -307,7 +316,7 @@ then
       wait
     fi
     
-    $SCRIPTDIR/make-trimmed-reads-stat-report.pl dir $OUTPUTDIR/tmp $OUTPUTDIR/logs/trimming-report.txt
+    $SCRIPTDIR/make-trimmed-reads-stat-report.pl dir $OUTPUTDIR/tmp $USEABLINKER $OUTPUTDIR/logs/trimming-report.txt
     
     rm $OUTPUTDIR/tmp/leftreads* $OUTPUTDIR/tmp/rightreads*
 
@@ -384,10 +393,11 @@ then
   then
     dispatch "bzip2 $OUTPUTDIR/tmp/left_chimeric.fq"    
     dispatch "bzip2 $OUTPUTDIR/tmp/right_chimeric.fq"
-  else
-    dispatch bzip2 $OUTPUTDIR/tmp/left_untrimmed.fq
-    dispatch bzip2 $OUTPUTDIR/tmp/right_untrimmed.fq
   fi
+  
+  dispatch bzip2 $OUTPUTDIR/tmp/left_untrimmed.fq
+  dispatch bzip2 $OUTPUTDIR/tmp/right_untrimmed.fq
+  
   
   wait
 
@@ -397,11 +407,12 @@ if [ $USEABLINKER = 'yes' ]
 then
   mv $OUTPUTDIR/tmp/left_chimeric.fq.bz2 $OUTPUTDIR/.
   mv $OUTPUTDIR/tmp/right_chimeric.fq.bz2 $OUTPUTDIR/.
-else
-  ## Keep untrimmed reads
-  mv $OUTPUTDIR/tmp/left_untrimmed.fq.bz2 $OUTPUTDIR/.
-  mv $OUTPUTDIR/tmp/right_untrimmed.fq.bz2 $OUTPUTDIR/.
 fi
+
+## Keep untrimmed reads
+mv $OUTPUTDIR/tmp/left_untrimmed.fq.bz2 $OUTPUTDIR/.
+mv $OUTPUTDIR/tmp/right_untrimmed.fq.bz2 $OUTPUTDIR/.
+
 
 
 rm -f $OUTPUTDIR/tmp/left_unzip.fq  $OUTPUTDIR/tmp/right_unzip.fq

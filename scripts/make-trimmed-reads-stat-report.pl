@@ -3,7 +3,7 @@
 use strict;
 use Switch;
 
-my ($mode,$base,$outfile) = @ARGV;
+my ($mode,$base,$ablinker,$outfile) = @ARGV;
 
 sub dirmode {
   my $b = shift;
@@ -11,7 +11,9 @@ sub dirmode {
   
   my $leftb = 0;
   my $leftt = 0;
+  my $leftc = 0;
   my $leftu = 0;
+  my $leftd = 0;
   my $c = 0;
 
   
@@ -20,7 +22,7 @@ sub dirmode {
   while(readdir($dirh)) {
     next unless /leftreads/;
     
-    open(F,"<","$b/$_") or die "cannot open $_";
+    open(F,"<","$b/$_") or die "cannot open $_: $!";
     
     $c = 0;
     $c++ while(<F>);
@@ -32,21 +34,39 @@ sub dirmode {
   closedir($dirh);
 
   
-  open(F,"<","$b/left_kept.fq") or die "Cannot open $b/left_kept.fq";
+  open(F,"<","$b/left_kept.fq") or die "Cannot open $b/left_kept.fq: $1";
   $leftt++ while(<F>);
-  
   close(F);
   
-  open(F,"<","$b/left_untrimmed.fq") or die "Cannot open $b/left_kept.fq";
+  open(F,"<","$b/left_untrimmed.fq") or die "Cannot open $b/left_untrimmed.fq: $!";
   $leftu++ while(<F>);
   close(F);
+  
+  $leftt /= 4;
+  $leftu /= 4;
+  
+  if( $ablinker =~ /yes/ ) {
+    open(F,"<","$b/left_chimeric.fq") or die "Cannot open $b/left_chimeric.fq: $!";
+    $leftc++ while(<F>);
+    close(F);
+    
+    $leftc /= 4;
+  } 
+  
+  $leftd = $leftb - $leftt - $leftc - $leftu;
 
   open(O,">",$outfile) or die "cannot open $outfile";
   
   print O "Trimming statistics:\n";
   print O "Total read pairs: $leftb\n";
-  print O "Trimmed read pairs: $leftt\n";
+  if( $ablinker =~ /yes/ ) {
+    print O "Trimmed AA/BB read pairs: $leftt\n";
+    print O "Trimmed AB/BA read pairs: $leftc\n";
+  } else {
+    print O "Trimmed read pairs: $leftt\n";
+  }
   print O "Untrimmed read pairs: $leftu\n";
+  print O "Pairs discarded because of trimmed read less than set minimum length: $leftd\n";
   
   close(O);
 }
