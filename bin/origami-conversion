@@ -10,7 +10,7 @@ my $showhelp = '';
 my $center = 0;
 
 GetOptions("help|h"=>\$showhelp,
-            "center|c=100"=>\$center)
+            "center|c:100"=>\$center)
 or die "Error in parsing arguments";
 
 
