@@ -15,6 +15,7 @@ SLOPGENOME=null
 MINIMODEL=yes
 USEDISTANCE=yes
 ZSCOREFILTER=no
+USEDF=0
 
 helpmenu() {
   if [ $# -eq 1 ];
@@ -32,6 +33,7 @@ helpmenu() {
   echo "  --slop-genome=[file]      Genome annotation file for size of each chromosome (default none, needs --slop-dist)"
   echo "  --save-full-model         Save data from the full model (save the "mini"-model data by default)"
   echo "  --peak-count-filter=[zscore]   Filter peaks with greater than z-score (default no filtering)"
+  echo "  --use-df=[positive number]  Set effective degrees of freedom for the smooth spline calculation of distance"
 }
 
 
@@ -77,6 +79,10 @@ while [ $# -ge 1 ]; do
 		  ;;
 		--peak-count-filter)
 		  ZSCOREFILTER="$2"
+		  shift
+		  ;;
+		--use-df)
+		  USEDF="$2"
 		  shift
 		  ;;
 	esac
@@ -141,4 +147,4 @@ rm $TMPFILE
 
 echo "Estimating interaction belief..."
 
-Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL $USEDISTANCE
+Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL $USEDISTANCE $USEDF

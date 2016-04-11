@@ -12,6 +12,7 @@ if( !interactive() ) {
   prune <- if( !is.na(args[7])) as.integer(args[7]) else 5
   minimodel <- if( !is.na(args[8])) args[8]=="yes" else T
   usedistance <- if( !is.na(args[9])) args[9]=="yes" else T
+  usedf <- if( !is.na(args[10])) as.integer(args[10]) else 0
   
   args <- commandArgs()
   

@@ -7,7 +7,7 @@ calc.zscore <- function(v) (v-mean(v))/sd(v)
 estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=100,pruning=NULL,
                                                         with.distance.weight=F,multiply=T,show.progress=F,
                                                         lambda0.init=1,lambda1.init=5,suppress.counts.higher.than=30,
-                                                        mini.model=T) {
+                                                        mini.model=T,usedf=0) {
   S <- nrow(ints)
   
   d <- GRanges(seqnames=as.character(depth$V1),ranges=IRanges(depth$V2,depth$V3),strand='*')
@@ -144,10 +144,10 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     if(with.distance.weight) {
       x <- log10(intdist[vz==1 & !interchromsomal]+1)
       
-      s1 <- smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
+      s1 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
       x <- log10(intdist[vz==0 & !interchromsomal]+1)
       
-      s0 <- smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0))
+      s0 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0))
       
       x <- log10(intdist)
       if(any(interchromsomal)) x[interchromsomal] <- 0
