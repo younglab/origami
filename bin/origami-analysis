@@ -38,7 +38,7 @@ helpmenu() {
 
 
 
-TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter: -n 'origami' -- "$@"`
+TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter:,use-df: -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
