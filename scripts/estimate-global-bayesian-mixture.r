@@ -20,6 +20,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
   d <- depth[,4]
   intdist <- distance(g1,g2)
   interchromsomal <- is.na(intdist)
+  minintdist <- min(intdist[!interchromosomal])
   #if(any(is.na(intdist))) {
   #  intdist[is.na(intdist)] <- max(intdist,na.rm=T)
   #}
@@ -150,14 +151,14 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       s0 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0))
       
       x <- log10(intdist)
-      if(any(interchromsomal)) x[interchromsomal] <- 0
+      if(any(interchromsomal)) x[interchromsomal] <- minintdist ## set eact interchromsomal interaction to shortest distance (which should have the highest mean read count)
       
       lambdad1 <- predict(s1,x)$y
-      if(any(interchromsomal)) lambdad1[is.na(x)] <- 0 ## is there better way to handle this?
+      #if(any(interchromsomal)) lambdad1[is.na(x)] <- 0 ## is there better way to handle this?
       
       
       lambdad0 <- predict(s0,x)$y
-      if(any(interchromsomal)) lambdad0[is.na(x)] <- 0
+      #if(any(interchromsomal)) lambdad0[is.na(x)] <- 0
       
       if( !mini.model) {
         ret$lambdad1[[i]] <- lambdad1
