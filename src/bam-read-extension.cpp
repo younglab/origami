@@ -3,8 +3,11 @@
 #include <iostream>
 #include <cstdlib>
 
-int main(int argv, const char **argv ) {
-  if(argv < 3) {
+using namespace BamTools;
+
+
+int main(int argc, const char **argv ) {
+  if(argc < 3) {
     std::cerr << "bam-read-extension: <BAM file> <extension> <out BAM file>" << std::endl;
     return EXIT_FAILURE;
   }
