@@ -62,7 +62,7 @@ if( !interactive() ){
 
     #cat("Model 1\n")
   gbayes.m1 <- estimate.global.bayesian.mixture(p,depth,inttable,burnin=burnin,N=iterations+burnin,pruning=prune,show.progress=T,mini.model=minimodel,
-                                                with.distance.weight=usedistance)
+                                                with.distance.weight=usedistance,usedf=usedf)
   gbayesp1 <- extract.global.bayesian.mixture.prob(gbayes.m1)
   
   #cat("Model 2\n")
