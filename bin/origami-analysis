@@ -15,6 +15,7 @@ SLOPGENOME=null
 MINIMODEL=yes
 USEDISTANCE=yes
 ZSCOREFILTER=no
+ASSIGNTOPEAKS=no
 USEDF=0
 
 helpmenu() {
@@ -34,11 +35,12 @@ helpmenu() {
   echo "  --save-full-model         Save data from the full model (save the "mini"-model data by default)"
   echo "  --peak-count-filter=[zscore]   Filter peaks with greater than z-score (default no filtering)"
   echo "  --use-df=[positive number]  Set effective degrees of freedom for the smooth spline calculation of distance"
+  echo "  --assign-to-peaks   Generates a secondary output where each end of an observed interaction fall on (one of) the original ChIP peak(s) [experimental]"
 }
 
 
 
-TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter:,use-df: -n 'origami' -- "$@"`
+TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter:,use-df:,assign-to-peaks -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -84,6 +86,9 @@ while [ $# -ge 1 ]; do
 		--use-df)
 		  USEDF="$2"
 		  shift
+		  ;;
+		--assign-to-peaks)
+		  ASSIGNTOPEAKS=yes
 		  ;;
 	esac
 	shift
@@ -148,3 +153,13 @@ rm $TMPFILE
 echo "Estimating interaction belief..."
 
 Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL $USEDISTANCE $USEDF
+
+if [ ASSIGNTOPEAKS = "yes" ]
+then
+  ANCHORS=$RANDOM.anchors.bed
+  OVERLAP=$RANDOM.anchors.bed
+  $SCRIPTDIR/extract-anchors.pl $PREFIX-results.csv > $ANCHORS
+  bedtools intersect -wao -a $ANCHORS -b $INPUTFILE > $OVERLAP
+  $SCRIPTDIR/reassign-anchors.pl $PREFIX-results.csv $OVERLAP > $PREFIX-results-peakassigned.csv
+  rm $ANCHORS $OVERLAP
+fi
