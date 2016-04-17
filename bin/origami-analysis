@@ -154,7 +154,7 @@ echo "Estimating interaction belief..."
 
 Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL $USEDISTANCE $USEDF
 
-if [ ASSIGNTOPEAKS = "yes" ]
+if [ $ASSIGNTOPEAKS != "no" ]
 then
   ANCHORS=$RANDOM.anchors.bed
   OVERLAP=$RANDOM.anchors.bed
