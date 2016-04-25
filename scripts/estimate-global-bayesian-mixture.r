@@ -186,7 +186,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     }
   } 
   ret <- c(ret,list(sdepth=sdepth,msdepth=msdepth,intdist=intdist))
-  if(mini.model) ret <- c(ret,list(zm=zm))
+  if(mini.model) ret <- c(ret,list(zm=zm,lambdad1=lambdad1,lamdbad0=lamdbad0))
   
   ret
 }

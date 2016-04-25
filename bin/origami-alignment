@@ -476,9 +476,7 @@ wait #finish all remaining processes
 
 echo "Calling peaks"
 
-bedtools bamtobed -i $OUTPUTDIR/mapped_reads.bam > $OUTPUTDIR/tmp/reads.bed
-
-macs2 callpeak -t $OUTPUTDIR/tmp/reads.bed -n peaks -g $MACSGSIZE --nomodel --shift 100 --outdir $OUTPUTDIR
+macs2 callpeak -t $OUTPUTDIR/mapped_reads.bam -n peaks -g $MACSGSIZE --nomodel --extsize 100 --outdir $OUTPUTDIR
 
 if [[ "$KEEPTMP" == "no" ]];
 then

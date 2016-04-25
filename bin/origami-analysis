@@ -16,6 +16,7 @@ MINIMODEL=yes
 USEDISTANCE=yes
 ZSCOREFILTER=no
 ASSIGNTOPEAKS=no
+ONLYMAP=no
 USEDF=0
 
 helpmenu() {
@@ -35,12 +36,13 @@ helpmenu() {
   echo "  --save-full-model         Save data from the full model (save the "mini"-model data by default)"
   echo "  --peak-count-filter=[zscore]   Filter peaks with greater than z-score (default no filtering)"
   echo "  --use-df=[positive number]  Set effective degrees of freedom for the smooth spline calculation of distance"
+  echo "  --only-map-pets   Only generate files for counting PETs at peaks and interactions, do not run the statistical modeling"
   echo "  --assign-to-peaks   Generates a secondary output where each end of an observed interaction fall on (one of) the original ChIP peak(s) [experimental]"
 }
 
 
 
-TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter:,use-df:,assign-to-peaks -n 'origami' -- "$@"`
+TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter:,use-df:,assign-to-peaks,only-map-pets -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -89,6 +91,9 @@ while [ $# -ge 1 ]; do
 		  ;;
 		--assign-to-peaks)
 		  ASSIGNTOPEAKS=yes
+		  ;;
+		--only-map-pets)
+		  ONLYMAP=yes
 		  ;;
 	esac
 	shift
@@ -152,9 +157,12 @@ rm $TMPFILE
 
 echo "Estimating interaction belief..."
 
-Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL $USEDISTANCE $USEDF
+if [ $ONLYMAP == "no" ];
+then
+  Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL $USEDISTANCE $USEDF
+fi
 
-if [ $ASSIGNTOPEAKS != "no" ]
+if [ $ASSIGNTOPEAKS != "no" ] && [ $ONLYMAP == "no" ]
 then
   ANCHORS=$RANDOM.anchors.bed
   OVERLAP=$RANDOM.anchors.bed
