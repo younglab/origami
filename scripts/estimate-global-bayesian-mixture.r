@@ -153,8 +153,8 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       x <- log10(intdist+1)
       if(any(interchromosomal)) x[interchromosomal] <- log10(minintdist+1) ## set eact interchromsomal interaction to shortest distance (which should have the highest mean read count)
       
-      lambdad1 <- predict(s1,x)$y
-      lambdad0 <- predict(s0,x)$y
+      lambdad1 <- pmax(predict(s1,x)$y,0) ### floor the value at 0
+      lambdad0 <- pmax(predict(s0,x)$y,0) 
       
       if( !mini.model) {
         ret$lambdad1[[i]] <- lambdad1
