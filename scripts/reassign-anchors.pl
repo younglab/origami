@@ -4,6 +4,7 @@ use strict;
 
 my ($resultsfile,$anchorfile) = @ARGV;
 my %anchors;
+my %anchorscore;
 
 open(R,"<",$resultsfile) or die "Cannot open $resultsfile: $!";
 open(A,"<",$anchorfile) or die "Cannot open $anchorfile: $!";
@@ -11,14 +12,17 @@ open(A,"<",$anchorfile) or die "Cannot open $anchorfile: $!";
 while(<A>) {
   chomp;
   
-  my ($achr,$as,$ae,$pchr,$ps,$pe) = split /\t/;
+  my ($achr,$as,$ae,$pchr,$ps,$pe,undef,$pscore,undef) = split /\t/;
   
   my $anchor = "$achr\t$as\t$ae";
   my $peak = "$pchr,$ps,$pe";
   
+  $pscore = 0 if !defined($pscore);
+  
   ## for now, take first hit as the "peak"
-  if(!exists($anchors{$anchor})) {
+  if(!exists($anchors{$anchor}) || $anchorscore{$anchor} < $pscore) {
     $anchors{$anchor} = $peak;
+    $anchorscore{$anchor} = $pscore;
   }
 }
 
