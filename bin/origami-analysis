@@ -10,6 +10,7 @@ TMPBAMPREFIX=bam$RANDOM.prefix
 BURNIN=100
 ITERATIONS=10000
 PRUNE=5
+MERGEDIST=0
 SLOPDIST=0
 SLOPGENOME=null
 MINIMODEL=yes
@@ -31,6 +32,7 @@ helpmenu() {
   echo "  --iterations=[positive integer] Sets the number of iterations for running the MCMC estimation (default 10000)"
   echo "  --burn-in=[0 or positive integer] Sets the number of iterations to use as the burn-in period, separate from the --iterations (default 100, 0 means no burn-in period)"
   echo "  --prune=[0 or >=2] Sets the number of steps at which to take an iteration rather than prune it (default 5, 0 means no pruning)"
+  echo "  --join-nearby-peaks=[positive integer]  For peaks within N distance, merge them together"
   echo "  --slop-dist=[positive integer]  Set the slop distance on both ends of the peak (default 0, needs --slop-genome)"
   echo "  --slop-genome=[file]      Genome annotation file for size of each chromosome (default none, needs --slop-dist)"
   echo "  --save-full-model         Save data from the full model (save the "mini"-model data by default)"
@@ -42,7 +44,7 @@ helpmenu() {
 
 
 
-TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter:,use-df:,assign-to-peaks,only-map-pets -n 'origami' -- "$@"`
+TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter:,use-df:,assign-to-peaks,only-map-pets,join-nearby-peaks: -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -95,6 +97,10 @@ while [ $# -ge 1 ]; do
 		--only-map-pets)
 		  ONLYMAP=yes
 		  ;;
+		--join-nearby-peaks)
+		  MERGEDIST="$2"
+		  shift
+		  ;;
 	esac
 	shift
 done
@@ -120,6 +126,13 @@ fi
 echo "Identifying PET counts in peaks and interactions..."
 
 cut -f 1,2,3 $INPUTFILE | sort -k 1,1 -k 2,2n > $TMPFILE
+
+if [ $MERGEDIST -gt 0 ];
+then
+  OUTFILE=$PREFIX.merge.bed
+  bedtools merge -i $TMPFILE -d $MERGEDIST > $OUTFILE
+  cp $OUTFILE $TMPFILE
+fi
 
 if [ $SLOPDIST -gt 0 ];
 then
