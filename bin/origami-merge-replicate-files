@@ -1,0 +1,66 @@
+#!/bin/bash
+
+COMPRESS=""
+
+TEMP=`getopt -o gb -l gzip,bzip2 -n 'origami-merge-replicates' -- "$@"`
+eval set -- "$TEMP"
+
+while [ $# -ge 1 ]; do
+	case "$1" in
+		--)
+			shift
+			break
+			;;
+		-h)
+			#helpmenu
+			exit 0
+			;;
+    -g|--gzip)
+      COMPRESS=gzip
+      ;;
+    -b|--bzip2)
+      COMPRESS=bzip2
+      ;;
+	esac
+	shift
+done
+
+if [[ $# < 3 ]];
+then
+  echo "origami-merge-replicate-files [-g|--gzip|-b|--bzip2] <output file> <file 1> <file 2> [file3 ...]"
+  exit 1
+fi
+
+OUTPUTFILE="$1"
+shift
+
+FQTMP=".$RANDOM.fq"
+
+for F in "$@"
+do
+  echo "Adding $F..."
+  
+  if [[ $F =~ .tar.gz$ ]];
+  then
+      tar --strip-components=5 -xOzf $F >> $FQTMP
+  elif [[ $F =~ .gz$ ]];
+  then
+      zcat $F >> $FQTMP
+  elif [[ $F =~ .bz2$ ]];
+  then
+      bzcat $F >> $FQTMP
+  else
+     cat $F >> $FQTMP
+  fi
+done
+
+echo "Generating output file..."
+mv $FQTMP $OUTPUTFILE
+
+if [ "$COMPRESS" != "" ];
+then
+  echo "Compressing output file..."
+  $COMPRESS $OUTPUTFILE
+fi
+
+echo "Done"
