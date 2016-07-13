@@ -1,0 +1,57 @@
+#!/bin/bash
+
+BASEDIR=$(dirname $0)
+SCRIPTDIR=$BASEDIR/../scripts
+
+helpmenu() {
+  if [ $# -eq 1 ];
+  then
+    echo $1
+  fi
+  
+  printf "origami-chip-profile [options] <mapped reads BAM> <output file>\n"
+  printf "%20s\t%-50s\n" "-h" "help menu (this output)"
+}
+
+
+
+TEMP=`getopt -o h -n 'origami' -- "$@"`
+
+if [ $? -ne 0 ];
+then
+  helpmenu
+  exit 1
+fi
+
+eval set -- "$TEMP"
+
+while [ $# -ge 1 ]; do
+	case "$1" in
+		--)
+			shift
+			break
+			;;
+		-h)
+			helpmenu
+			exit 0
+			;;
+		*)
+		  helpmenu "Unknown option $1"
+		  exit 1
+		  ;;
+	esac
+	shift
+done
+
+if [ $# -lt 2 ];
+then
+  helpmenu "Insufficient number of arguments"
+  exit 1
+fi
+
+BAMFILE="$1"
+OUTPUTFLIE="$2"
+
+Rscript $SCRIPTDIR/make-chip-profile.r $1 $2
+
+exit $?
