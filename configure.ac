@@ -9,6 +9,7 @@ AC_CHECK_TOOLS([MACS2],[macs2],[no])
 AC_CHECK_TOOLS([BOWTIE],[bowtie],[no])
 AC_CHECK_TOOLS([BEDTOOLS],[bedtools],[no])
 AC_CHECK_TOOLS([REXE],[R],[no])
+AC_CHECK_TOOLS([SAMTOOLS],[samtools],[no])
 AC_PROG_CXX([g++ gcc])
 
 if test "$ac_cv_prog_CUTADAPTOR" == no
@@ -34,6 +35,11 @@ fi
 if test "$ac_cv_prog_REXE" == no
 then
   AC_MSG_ERROR([Cannot find R in PATH, please either add R to PATH or set REXE=/path/to/R manually])
+fi
+
+if test "$ac_cv_prog_SAMTOOLS" == no
+then
+  AC_MSG_ERROR([Cannot find samtools in PATH, please either add samtools to PATH or set SAMTOOLS=/path/to/samtools manually])
 fi
 
 AC_MSG_NOTICE([Checking for C++ libraries needed by origami])
