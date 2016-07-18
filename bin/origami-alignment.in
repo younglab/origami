@@ -270,15 +270,15 @@ then
       fi
       
       for((i=0;i<${#LEFTREADS[@]};++i)); do
-        dispatch cutadapt -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $AAPARAM -o $OUTPUTDIR/tmp/l_same_aa_$i.fq -p $OUTPUTDIR/tmp/r_same_aa_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+        dispatch @CUTADAPTOR@ -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $AAPARAM -o $OUTPUTDIR/tmp/l_same_aa_$i.fq -p $OUTPUTDIR/tmp/r_same_aa_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
       
-        dispatch cutadapt -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BBPARAM -o $OUTPUTDIR/tmp/l_same_bb_$i.fq -p $OUTPUTDIR/tmp/r_same_bb_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+        dispatch @CUTADAPTOR@ -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BBPARAM -o $OUTPUTDIR/tmp/l_same_bb_$i.fq -p $OUTPUTDIR/tmp/r_same_bb_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
 
-        dispatch cutadapt -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $ABPARAM -o $OUTPUTDIR/tmp/l_diff_ab_$i.fq -p $OUTPUTDIR/tmp/r_diff_ab_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+        dispatch @CUTADAPTOR@ -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $ABPARAM -o $OUTPUTDIR/tmp/l_diff_ab_$i.fq -p $OUTPUTDIR/tmp/r_diff_ab_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
 
-        dispatch cutadapt -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BAPARAM -o $OUTPUTDIR/tmp/l_diff_ba_$i.fq -p $OUTPUTDIR/tmp/r_diff_ba_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+        dispatch @CUTADAPTOR@ -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BAPARAM -o $OUTPUTDIR/tmp/l_diff_ba_$i.fq -p $OUTPUTDIR/tmp/r_diff_ba_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
         
-        dispatch cutadapt -f fastq -n 3 --overlap 10 -e 0 --discard-trimmed -m $MINREADLENGTH $NPARAM -o $OUTPUTDIR/tmp/l_neither_$i.fq -p $OUTPUTDIR/tmp/r_neither_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+        dispatch @CUTADAPTOR@ -f fastq -n 3 --overlap 10 -e 0 --discard-trimmed -m $MINREADLENGTH $NPARAM -o $OUTPUTDIR/tmp/l_neither_$i.fq -p $OUTPUTDIR/tmp/r_neither_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
 
       done
       
@@ -300,14 +300,14 @@ then
     else
 
       for ((i=0;i<${#LEFTREADS[@]};++i)); do
-        dispatch cutadapt -f fastq -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/l_t1_$i.fq --untrimmed-output $OUTPUTDIR/tmp/l_nt1_$i.fq -p $OUTPUTDIR/tmp/r_t1_$i.fq --untrimmed-paired-output $OUTPUTDIR/tmp/r_nt1_$i.fq ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+        dispatch @CUTADAPTOR@ -f fastq -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/l_t1_$i.fq --untrimmed-output $OUTPUTDIR/tmp/l_nt1_$i.fq -p $OUTPUTDIR/tmp/r_t1_$i.fq --untrimmed-paired-output $OUTPUTDIR/tmp/r_nt1_$i.fq ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
       done
       wait
   
       for ((i=0;i<${#LEFTREADS[@]};++i)); do
-        dispatch cutadapt -f fastq -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t2_$i.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt2_$i.fq -p $OUTPUTDIR/tmp/l_t2_$i.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt2_$i.fq $OUTPUTDIR/tmp/r_nt1_$i.fq $OUTPUTDIR/tmp/l_nt1_$i.fq
+        dispatch @CUTADAPTOR@ -f fastq -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t2_$i.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt2_$i.fq -p $OUTPUTDIR/tmp/l_t2_$i.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt2_$i.fq $OUTPUTDIR/tmp/r_nt1_$i.fq $OUTPUTDIR/tmp/l_nt1_$i.fq
       
-        dispatch cutadapt -f fastq -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t3_$i.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt3_$i.fq -p $OUTPUTDIR/tmp/l_t3_$i.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt3_$i.fq $OUTPUTDIR/tmp/r_t1_$i.fq $OUTPUTDIR/tmp/l_t1_$i.fq
+        dispatch @CUTADAPTOR@ -f fastq -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t3_$i.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt3_$i.fq -p $OUTPUTDIR/tmp/l_t3_$i.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt3_$i.fq $OUTPUTDIR/tmp/r_t1_$i.fq $OUTPUTDIR/tmp/l_t1_$i.fq
       done
 
       wait
@@ -349,13 +349,13 @@ then
         BAPARAM="-a $ABLINKERB -A $ABLINKERA"
       fi
     
-      dispatch cutadapt -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $AAPARAM -o $OUTPUTDIR/tmp/l_same_aa.fq -p $OUTPUTDIR/tmp/r_same_aa.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+      dispatch @CUTADAPTOR@ -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $AAPARAM -o $OUTPUTDIR/tmp/l_same_aa.fq -p $OUTPUTDIR/tmp/r_same_aa.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
       
-      dispatch cutadapt -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BBPARAM -o $OUTPUTDIR/tmp/l_same_bb.fq -p $OUTPUTDIR/tmp/r_same_bb.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+      dispatch @CUTADAPTOR@ -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BBPARAM -o $OUTPUTDIR/tmp/l_same_bb.fq -p $OUTPUTDIR/tmp/r_same_bb.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
 
-      dispatch cutadapt -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $ABPARAM -o $OUTPUTDIR/tmp/l_diff_ab.fq -p $OUTPUTDIR/tmp/r_diff_ab.fq  $OUTPUTDIR/tmp/right_reads.fq
+      dispatch @CUTADAPTOR@ -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $ABPARAM -o $OUTPUTDIR/tmp/l_diff_ab.fq -p $OUTPUTDIR/tmp/r_diff_ab.fq  $OUTPUTDIR/tmp/right_reads.fq
 
-      dispatch cutadapt -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BAPARAM -o $OUTPUTDIR/tmp/l_diff_ba.fq -p $OUTPUTDIR/tmp/r_diff_ba.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+      dispatch @CUTADAPTOR@ -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BAPARAM -o $OUTPUTDIR/tmp/l_diff_ba.fq -p $OUTPUTDIR/tmp/r_diff_ba.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
 
       dispatch "cat $OUTPUTDIR/tmp/l_same_aa.fq $OUTPUTDIR/tmp/l_same_bb.fq > $OUTPUTDIR/tmp/left_kept.fq"
       
@@ -368,13 +368,13 @@ then
 
     else
 
-      dispatch cutadapt -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/l_t1.fq --untrimmed-output $OUTPUTDIR/tmp/l_nt1.fq -p $OUTPUTDIR/tmp/r_t1.fq --untrimmed-paired-output $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+      dispatch @CUTADAPTOR@ -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/l_t1.fq --untrimmed-output $OUTPUTDIR/tmp/l_nt1.fq -p $OUTPUTDIR/tmp/r_t1.fq --untrimmed-paired-output $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
     
       wait
     
-      dispatch cutadapt -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t2.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt2.fq -p $OUTPUTDIR/tmp/l_t2.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt2.fq $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/l_nt1.fq
+      dispatch @CUTADAPTOR@ -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t2.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt2.fq -p $OUTPUTDIR/tmp/l_t2.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt2.fq $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/l_nt1.fq
     
-      dispatch cutadapt -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t3.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt3.fq -p $OUTPUTDIR/tmp/l_t3.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt3.fq $OUTPUTDIR/tmp/r_t1.fq $OUTPUTDIR/tmp/l_t1.fq
+      dispatch @CUTADAPTOR@ -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t3.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt3.fq -p $OUTPUTDIR/tmp/l_t3.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt3.fq $OUTPUTDIR/tmp/r_t1.fq $OUTPUTDIR/tmp/l_t1.fq
 
       wait
 
@@ -434,33 +434,33 @@ then
 
     for FILE in $OUTPUTDIR/tmp/leftkept*
     do
-  	  dispatch "bowtie -n 1 -m 1 -p 6 --sam $BOWTIEIDX $FILE > $FILE.sam; samtools view -Sb $FILE.sam > $FILE.bam; rm $FILE.sam"
+  	  dispatch "@BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $FILE > $FILE.sam; @SAMTOOLS@ view -Sb $FILE.sam > $FILE.bam; rm $FILE.sam"
     done
 
     for FILE in $OUTPUTDIR/tmp/rightkept*
     do
-    	dispatch "bowtie -n 1 -m 1 -p 6 --sam $BOWTIEIDX $FILE > $FILE.sam; samtools view -Sb $FILE.sam > $FILE.bam; rm $FILE.sam"
+    	dispatch "@BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $FILE > $FILE.sam; @SAMTOOLS@ view -Sb $FILE.sam > $FILE.bam; rm $FILE.sam"
     done
 
     wait
 
-    dispatch "cd $OUTPUTDIR/tmp && samtools merge left_kept.bam leftkept*.bam"
-    dispatch "cd $OUTPUTDIR/tmp && samtools merge right_kept.bam rightkept*.bam"
+    dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ merge left_kept.bam leftkept*.bam"
+    dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ merge right_kept.bam rightkept*.bam"
 
     wait
 
     dispatch "rm $OUTPUTDIR/tmp/leftkept* $OUTPUTDIR/tmp/rightkept*"
     wait
   else
-    dispatch "bowtie -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/left_kept.fq > $OUTPUTDIR/tmp/left_kept.sam; samtools view -Sb $OUTPUTDIR/tmp/left_kept.sam > $OUTPUTDIR/tmp/left_kept.bam; rm $OUTPUTDIR/tmp/left_kept.sam"
-    dispatch "bowtie -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/right_kept.fq > $OUTPUTDIR/tmp/right_kept.sam; samtools view -Sb $OUTPUTDIR/tmp/right_kept.sam > $OUTPUTDIR/tmp/right_kept.bam; rm $OUTPUTDIR/tmp/right_kept.sam"
+    dispatch "@BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/left_kept.fq > $OUTPUTDIR/tmp/left_kept.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/left_kept.sam > $OUTPUTDIR/tmp/left_kept.bam; rm $OUTPUTDIR/tmp/left_kept.sam"
+    dispatch "@BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/right_kept.fq > $OUTPUTDIR/tmp/right_kept.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/right_kept.sam > $OUTPUTDIR/tmp/right_kept.bam; rm $OUTPUTDIR/tmp/right_kept.sam"
 
     wait
   fi
 
-  dispatch "cd $OUTPUTDIR/tmp && samtools sort -Obam -Tlefttmp -n left_kept.bam > left_kept.sorted.bam"
+  dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ sort -Obam -Tlefttmp -n left_kept.bam > left_kept.sorted.bam"
   
-  dispatch "cd $OUTPUTDIR/tmp && samtools sort -Obam -Trighttmp -n right_kept.bam > right_kept.sorted.bam"
+  dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ sort -Obam -Trighttmp -n right_kept.bam > right_kept.sorted.bam"
 
   wait
 
@@ -475,7 +475,7 @@ then
   #mv $OUTPUTDIR/tmp/right_kept.bam $OUTPUTDIR/right_kept.bam
 fi
 
-$SCRIPTDIR/remove-duplicates.pl $OUTPUTDIR/mapped_reads.bam | samtools view -Sb > $OUTPUTDIR/mapped_reads.rmdup.bam
+$SCRIPTDIR/remove-duplicates.pl $OUTPUTDIR/mapped_reads.bam | @SAMTOOLS@ view -Sb > $OUTPUTDIR/mapped_reads.rmdup.bam
 
 wait #finish all remaining processes
 
