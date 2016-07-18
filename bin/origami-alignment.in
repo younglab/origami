@@ -1,0 +1,501 @@
+#!/bin/bash
+
+## helper variables
+BASEDIR=$(dirname $0)
+BINDIR=$BASEDIR/../bin
+SCRIPTDIR=$BASEDIR/../scripts
+
+### command line options
+OUTPUTDIR=output
+VERBOSE=off
+SKIP=on
+PARALLEL=off
+SPLITNUM=4000000
+BZPOSTFIX="[.]bz2$"
+BOWTIEIDX=notafile
+KEEPTMP=no
+FORWARDLINKER="ACGCGATATCTTATCTGACT"
+REVERSELINKER="AGTCAGATAAGATATCGCGT"
+ABLINKERA="CTGCTGTCCG"
+ABLINKERB="CTGCTGTCAT"
+ABLINKERAREV="CGGACAGCAG"
+ABLINKERBREV="ATGACAGCAG"
+USEABLINKER=no
+USEABREVLINKER=no
+PREPROCESSINGCMD=cat
+MINREADLENGTH=15
+MACSGSIZE=hs
+CALLBROADPEAK=no
+
+## other variables
+ORIGINALCMD="$0 $@"
+
+
+verbose() {
+	if [ "$VERBOSE" = on ]
+	then
+		NOWTIME=$(date)
+		echo "[$NOWTIME] $1"
+	fi
+}
+
+verbosecmd() {
+  if [ "$VERBOSE" = on ]
+  then
+    NOWTIME=$(date)
+    echo "[$NOWTIME] $@"
+  fi
+  eval "$@"
+}
+
+dispatch() {
+        if [ "$PARALLEL" = on ]
+        then
+                bsub -K -q $LSFQUEUE -J origami -o $OUTPUTDIR/logs/cluster_log.txt "$@" &
+        else
+                eval "$@"
+        fi
+}
+
+helpmenu() {
+  if [ $# -eq 1 ];
+  then
+    echo $1
+  fi
+  echo "origami-alignment [options] <bowtie index> <first FASTQ> <second FASTQ>"
+  echo "  For the FASTQ files, they may be either in plan text (no compression), gzip (.gz),"
+  echo "    or bzip2 (.bz2) format (automatically deteced by file suffix)"
+  echo ""
+  echo "  -o,--output= output directory (default output)"
+  echo "  -h Help menu"
+  echo "  -v verbose mode"
+  echo "  -p parallel LSF mode (distributed bsub)"
+  echo "  -m,--min-len=   Minimum length of read post-trimming to be kept (default is 15 bp)"
+  echo "  --splitnum=<NUM> Split reads into NUM for -p (default none)"
+  echo "  --keep-tmp Keep temporary directory (default is to remove it when finished)"
+  echo "  --lsf-queue= Set the queue name for LSF (implies -p)"
+  echo "  --forward-linker=  Set the foward-linker sequence (default ACGCGATATCTTATCTGACT)"
+  echo "  --reverse-linker=  Set the reverse-linker sequence (default AGTCAGATAAGATATCGCGT)"
+  echo "  --ab-linker   Run alignment using AB-linker setup (default, non-AB linker trimming)"
+  echo "  --a-linker=   Set the A-linker sequence (default, CTGCTGTCCG, implies --ab-linker)"
+  echo "  --b-linker=   Set the B-linker sequence (default, CTGCTGTCAT, implies --ab-linker)"
+  echo "  --pp=         Run pre-preprocessing command on reads before linker trimming (must be executable, default none)"
+  echo "  --macs-gsize=     Set genome size for macs2 peak calling (default=hs)"
+  echo "  --callbroadpeak   Calls broad peak via macs2 and generates merged file (for factors that have narrow and broad binding)"
+}
+
+TEMP=`getopt -o o:hvapm: -l output:,noskip,splitnum:,keep-tmp,lsf-queue:,forward-linker:,reverse-linker:,ab-linker,a-linker:,b-linker:,pp:,min-len:,macs-gsize:,with-ab-reverse,a-rev-linker:,b-rev-linker:,callbroadpeak -n 'origami' -- "$@"`
+eval set -- "$TEMP"
+
+while [ $# -ge 1 ]; do
+	case "$1" in
+		--)
+			shift
+			break
+			;;
+		-o|--output)
+			OUTPUTDIR=$2
+			shift
+			;;
+		-h)
+			helpmenu
+			exit 0
+			;;
+		-v)
+			VERBOSE=on
+			;;
+		--noskip)
+			SKIP=off
+			;;
+		-p)
+			PARALLEL=on
+			;;
+		--splitnum)
+		  SPLITNUM=$(expr "$2" \* 4)
+		  shift
+		  ;;
+		--keep-tmp)
+		  KEEPTMP=yes
+		  ;;
+		--lsf-queue)
+		  LSFQUEUE="$2"
+		  PARALLEL=on
+		  shift
+		  ;;
+		--forward-linker)
+		  FORWARDLINKER="$2"
+		  shift
+		  ;;
+		--reverse-linker)
+		  REVERSELINKER="$2"
+		  shift
+		  ;;
+		--ab-linker)
+		  USEABLINKER=yes
+		  ;;
+		--a-linker)
+		  ABLINKERA="$2"
+		  USEABLINKER=yes
+		  shift
+		  ;;
+		--b-linker)
+		  ABLINKERB="$2"
+		  USEABLINKER=yes
+		  shift
+		  ;;
+		--with-ab-reverse)
+		  USEABREVLINKER=yes
+		  USEABLINKER=yes
+		  ;;
+		--a-rev-linker)
+		  ABLINKERAREV="$2"
+		  shift
+		  ;;
+		--b-rev-linker)
+		  ABLINKERBREV="$2"
+		  shift
+		  ;;
+		--pp)
+	    PREPROCESSINGCMD="$2"
+	    shift
+	    ;;
+	  -m|--min-len)
+	    MINREADLENGTH="$2"
+	    shift
+	    ;;
+	  --macs-gsize)
+	    MACSGSIZE="$2"
+	    shift
+	    ;;
+	  --callbroadpeak)
+	   CALLBROADPEAK=yes
+	   ;;
+	esac
+	shift
+done
+
+if [ $# -lt 3 ];
+then
+  helpmenu "Error: did not supply necessary file name arguments"
+  exit 1
+fi
+
+BOWTIEIDX="$1"
+LEFTREADS="$2"
+RIGHTREADS="$3"
+
+if [[ "$PARALLEL" == "on" ]] && [[ ! -n "$LSFQUEUE" ]];
+then
+  helpmenu "Error: if using -p, then must use --lsf-queue"
+  exit 1
+fi
+
+
+echo "Launching origami..."
+
+verbose "Analyzing $LEFTREADS and $RIGHTREADS"
+
+verbose "Creating output directory"
+mkdir $OUTPUTDIR
+verbose "Creating temporary file directory"
+mkdir $OUTPUTDIR/tmp
+verbose "Creating logs directory"
+mkdir $OUTPUTDIR/logs
+
+echo "Running origami with the following command line: $ORIGINALCMD" > $OUTPUTDIR/logs/alignment-execution.txt
+
+if [[ "$VERBOSE" != "on" ]] && [[ "$PARALLEL" == "on" ]];
+then
+  export BSUB_QUIET=Y
+fi
+
+## Get file suffix (assumes same suffix for both left and right files)
+FILESUFFIX=${LEFTREADS##*.}
+
+case "$FILESUFFIX" in
+  gz)
+    CATFUNC=zcat
+    ;;
+  bz2)
+    CATFUNC=bzcat
+    ;;
+  *)
+    CATFUNC=cat
+    ;;
+esac
+
+echo "Removing adapter sequences on $LEFTREADS and $RIGHTREADS"
+if [[ $USEABLINKER = "yes" ]]
+then
+  echo "Running in AB-linker trimming mode"
+else
+  echo "Running in long-linker trimming mode"
+fi
+
+if [[ "$SKIP" == "off" || ! -e "$OUTPUTDIR/mapped_reads.bam" ]];
+then
+
+
+  if [ $PARALLEL = "on" ]
+  then
+
+    dispatch "$CATFUNC $LEFTREADS | $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/leftreads"
+    
+    dispatch "$CATFUNC $RIGHTREADS | $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/rightreads"
+  
+    wait 
+
+    ## One assumption here is that split names the files in the same linear order -- maybe this should be done differently?
+    LEFTREADS=($(ls $OUTPUTDIR/tmp/leftreads*))
+    RIGHTREADS=($(ls $OUTPUTDIR/tmp/rightreads*))
+    
+    ## structure of read trimming code influenced by Diego's work
+
+    if [ $USEABLINKER = "yes" ]
+    then
+
+      if [ $USEABREVLINKER = "yes" ]
+      then
+        AAPARAM="-a $ABLINKERA -A $ABLINKERA -a $ABLINKERAREV -A $ABLINKERAREV"
+        BBPARAM="-a $ABLINKERB -A $ABLINKERB -a $ABLINKERBREV -A $ABLINKERBREV"
+        ABPARAM="-a $ABLINKERA -A $ABLINKERB -a $ABLINKERAREV -A $ABLINKERBREV"
+        BAPARAM="-a $ABLINKERB -A $ABLINKERA -a $ABLINKERBREV -A $ABLINKERAREV"
+        NPARAM="-a $ABLINKERA -a $ABLINKERB -a $ABLINKERAREV -a $ABLINKERBREV -A $ABLINKERA -A $ABLINKERB -A $ABLINKERAREV -A $ABLINKERBREV"
+      else
+        AAPARAM="-a $ABLINKERA -A $ABLINKERA"
+        BBPARAM="-a $ABLINKERB -A $ABLINKERB"
+        ABPARAM="-a $ABLINKERA -A $ABLINKERB"
+        BAPARAM="-a $ABLINKERB -A $ABLINKERA"
+        NPARAM="-a $ABLINKERA -a $ABLINKERB -A $ABLINKERA -A $ABLINKERB"
+      fi
+      
+      for((i=0;i<${#LEFTREADS[@]};++i)); do
+        dispatch @CUTADAPTOR@ -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $AAPARAM -o $OUTPUTDIR/tmp/l_same_aa_$i.fq -p $OUTPUTDIR/tmp/r_same_aa_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+      
+        dispatch @CUTADAPTOR@ -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BBPARAM -o $OUTPUTDIR/tmp/l_same_bb_$i.fq -p $OUTPUTDIR/tmp/r_same_bb_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+
+        dispatch @CUTADAPTOR@ -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $ABPARAM -o $OUTPUTDIR/tmp/l_diff_ab_$i.fq -p $OUTPUTDIR/tmp/r_diff_ab_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+
+        dispatch @CUTADAPTOR@ -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BAPARAM -o $OUTPUTDIR/tmp/l_diff_ba_$i.fq -p $OUTPUTDIR/tmp/r_diff_ba_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+        
+        dispatch @CUTADAPTOR@ -f fastq -n 3 --overlap 10 -e 0 --discard-trimmed -m $MINREADLENGTH $NPARAM -o $OUTPUTDIR/tmp/l_neither_$i.fq -p $OUTPUTDIR/tmp/r_neither_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+
+      done
+      
+      wait
+
+      dispatch "cat $OUTPUTDIR/tmp/l_same_aa_*.fq $OUTPUTDIR/tmp/l_same_bb_*.fq > $OUTPUTDIR/tmp/left_kept.fq"
+      
+      dispatch "cat $OUTPUTDIR/tmp/r_same_aa_*.fq $OUTPUTDIR/tmp/r_same_bb_*.fq > $OUTPUTDIR/tmp/right_kept.fq"
+
+      dispatch "cat $OUTPUTDIR/tmp/l_diff_ab_*.fq $OUTPUTDIR/tmp/l_diff_ba_*.fq > $OUTPUTDIR/tmp/left_chimeric.fq"
+      
+      dispatch "cat $OUTPUTDIR/tmp/r_diff_ab_*.fq $OUTPUTDIR/tmp/r_diff_ba_*.fq > $OUTPUTDIR/tmp/right_chimeric.fq"
+      
+      dispatch "cat $OUTPUTDIR/tmp/l_neither_*.fq > $OUTPUTDIR/tmp/left_untrimmed.fq"
+      
+      dispatch "cat $OUTPUTDIR/tmp/r_neither_*.fq > $OUTPUTDIR/tmp/right_untrimmed.fq"
+
+      wait
+    else
+
+      for ((i=0;i<${#LEFTREADS[@]};++i)); do
+        dispatch @CUTADAPTOR@ -f fastq -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/l_t1_$i.fq --untrimmed-output $OUTPUTDIR/tmp/l_nt1_$i.fq -p $OUTPUTDIR/tmp/r_t1_$i.fq --untrimmed-paired-output $OUTPUTDIR/tmp/r_nt1_$i.fq ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+      done
+      wait
+  
+      for ((i=0;i<${#LEFTREADS[@]};++i)); do
+        dispatch @CUTADAPTOR@ -f fastq -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t2_$i.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt2_$i.fq -p $OUTPUTDIR/tmp/l_t2_$i.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt2_$i.fq $OUTPUTDIR/tmp/r_nt1_$i.fq $OUTPUTDIR/tmp/l_nt1_$i.fq
+      
+        dispatch @CUTADAPTOR@ -f fastq -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t3_$i.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt3_$i.fq -p $OUTPUTDIR/tmp/l_t3_$i.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt3_$i.fq $OUTPUTDIR/tmp/r_t1_$i.fq $OUTPUTDIR/tmp/l_t1_$i.fq
+      done
+
+      wait
+  
+      dispatch "cat $OUTPUTDIR/tmp/l_t3*.fq $OUTPUTDIR/tmp/l_nt3*.fq $OUTPUTDIR/tmp/l_t2*.fq > $OUTPUTDIR/tmp/left_kept.fq"
+      dispatch "cat $OUTPUTDIR/tmp/r_t3*.fq $OUTPUTDIR/tmp/r_nt3*.fq $OUTPUTDIR/tmp/r_t2*.fq > $OUTPUTDIR/tmp/right_kept.fq"
+
+      dispatch "cat $OUTPUTDIR/tmp/l_nt2*.fq > $OUTPUTDIR/tmp/left_untrimmed.fq"
+      dispatch "cat $OUTPUTDIR/tmp/r_nt2*.fq > $OUTPUTDIR/tmp/right_untrimmed.fq"
+
+      wait
+    fi
+    
+    $SCRIPTDIR/make-trimmed-reads-stat-report.pl dir $OUTPUTDIR/tmp $USEABLINKER $OUTPUTDIR/logs/trimming-report.txt
+    
+    rm $OUTPUTDIR/tmp/leftreads* $OUTPUTDIR/tmp/rightreads*
+
+  else
+
+    verbosecmd "$CATFUNC $LEFTREADS | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/left_reads.fq"
+    
+    verbosecmd "$CATFUNC $RIGHTREADS | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/right_reads.fq"
+
+    wait
+    
+    if [ $USEABLINKER = "yes" ]
+    then
+    
+      if [ $USEABREVLINKER = "yes" ]
+      then
+        AAPARAM="-a $ABLINKERA -A $ABLINKERA -a $ABLINKERAREV -A $ABLINKERAREV"
+        BBPARAM="-a $ABLINKERB -A $ABLINKERB -a $ABLINKERBREV -A $ABLINKERBREV"
+        ABPARAM="-a $ABLINKERA -A $ABLINKERB -a $ABLINKERAREV -A $ABLINKERBREV"
+        BAPARAM="-a $ABLINKERB -A $ABLINKERA -a $ABLINKERBREV -A $ABLINKERAREV"
+      else
+        AAPARAM="-a $ABLINKERA -A $ABLINKERA"
+        BBPARAM="-a $ABLINKERB -A $ABLINKERB"
+        ABPARAM="-a $ABLINKERA -A $ABLINKERB"
+        BAPARAM="-a $ABLINKERB -A $ABLINKERA"
+      fi
+    
+      dispatch @CUTADAPTOR@ -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $AAPARAM -o $OUTPUTDIR/tmp/l_same_aa.fq -p $OUTPUTDIR/tmp/r_same_aa.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+      
+      dispatch @CUTADAPTOR@ -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BBPARAM -o $OUTPUTDIR/tmp/l_same_bb.fq -p $OUTPUTDIR/tmp/r_same_bb.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+
+      dispatch @CUTADAPTOR@ -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $ABPARAM -o $OUTPUTDIR/tmp/l_diff_ab.fq -p $OUTPUTDIR/tmp/r_diff_ab.fq  $OUTPUTDIR/tmp/right_reads.fq
+
+      dispatch @CUTADAPTOR@ -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BAPARAM -o $OUTPUTDIR/tmp/l_diff_ba.fq -p $OUTPUTDIR/tmp/r_diff_ba.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+
+      dispatch "cat $OUTPUTDIR/tmp/l_same_aa.fq $OUTPUTDIR/tmp/l_same_bb.fq > $OUTPUTDIR/tmp/left_kept.fq"
+      
+      dispatch "cat $OUTPUTDIR/tmp/r_same_aa.fq $OUTPUTDIR/tmp/r_same_bb.fq > $OUTPUTDIR/tmp/right_kept.fq"
+
+      dispatch "cat $OUTPUTDIR/tmp/l_diff_ab.fq $OUTPUTDIR/tmp/l_diff_ba.fq > $OUTPUTDIR/tmp/left_chimeric.fq"
+      
+      dispatch "cat $OUTPUTDIR/tmp/r_diff_ab.fq $OUTPUTDIR/tmp/r_diff_ba.fq > $OUTPUTDIR/tmp/right_chimeric.fq"
+
+
+    else
+
+      dispatch @CUTADAPTOR@ -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/l_t1.fq --untrimmed-output $OUTPUTDIR/tmp/l_nt1.fq -p $OUTPUTDIR/tmp/r_t1.fq --untrimmed-paired-output $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+    
+      wait
+    
+      dispatch @CUTADAPTOR@ -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t2.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt2.fq -p $OUTPUTDIR/tmp/l_t2.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt2.fq $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/l_nt1.fq
+    
+      dispatch @CUTADAPTOR@ -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/r_t3.fq --untrimmed-output $OUTPUTDIR/tmp/r_nt3.fq -p $OUTPUTDIR/tmp/l_t3.fq --untrimmed-paired-output $OUTPUTDIR/tmp/l_nt3.fq $OUTPUTDIR/tmp/r_t1.fq $OUTPUTDIR/tmp/l_t1.fq
+
+      wait
+
+      dispatch "cat $OUTPUTDIR/tmp/l_t3.fq $OUTPUTDIR/tmp/l_nt3.fq $OUTPUTDIR/tmp/l_t2.fq > $OUTPUTDIR/tmp/left_kept.fq"
+      dispatch "cat $OUTPUTDIR/tmp/r_t3.fq $OUTPUTDIR/tmp/r_nt3.fq $OUTPUTDIR/tmp/r_t2.fq > $OUTPUTDIR/tmp/right_kept.fq"
+
+      dispatch "cat $OUTPUTDIR/tmp/l_nt2.fq > $OUTPUTDIR/tmp/left_untrimmed.fq"
+      dispatch "cat $OUTPUTDIR/tmp/r_nt2.fq > $OUTPUTDIR/tmp/right_untrimmed.fq"  
+
+      wait
+    fi
+    
+    rm $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+  
+  fi
+
+  ### Cleanup
+  rm $OUTPUTDIR/tmp/l_*.fq $OUTPUTDIR/tmp/r_*.fq
+
+  if [ $USEABLINKER = 'yes' ]
+  then
+    dispatch "bzip2 $OUTPUTDIR/tmp/left_chimeric.fq"    
+    dispatch "bzip2 $OUTPUTDIR/tmp/right_chimeric.fq"
+  fi
+  
+  dispatch bzip2 $OUTPUTDIR/tmp/left_untrimmed.fq
+  dispatch bzip2 $OUTPUTDIR/tmp/right_untrimmed.fq
+  
+  
+  wait
+
+fi
+
+if [ $USEABLINKER = 'yes' ]
+then
+  mv $OUTPUTDIR/tmp/left_chimeric.fq.bz2 $OUTPUTDIR/.
+  mv $OUTPUTDIR/tmp/right_chimeric.fq.bz2 $OUTPUTDIR/.
+fi
+
+## Keep untrimmed reads
+mv $OUTPUTDIR/tmp/left_untrimmed.fq.bz2 $OUTPUTDIR/.
+mv $OUTPUTDIR/tmp/right_untrimmed.fq.bz2 $OUTPUTDIR/.
+
+
+
+rm -f $OUTPUTDIR/tmp/left_unzip.fq  $OUTPUTDIR/tmp/right_unzip.fq
+
+echo "Aligning reads"
+if [[ "$SKIP" == off || ! -e "$OUTPUTDIR/mapped_reads.bam" ]]; #&& $BINDIR/bowtie_align.sh $OUTPUTDIR $BOWTIEIDX $PARALLEL $SPLITNUM
+then
+  if [ $PARALLEL == "on" ];
+  then
+    dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/left_kept.fq $OUTPUTDIR/tmp/leftkept"
+    dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/right_kept.fq $OUTPUTDIR/tmp/rightkept"
+
+    wait
+
+    for FILE in $OUTPUTDIR/tmp/leftkept*
+    do
+  	  dispatch "@BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $FILE > $FILE.sam; @SAMTOOLS@ view -Sb $FILE.sam > $FILE.bam; rm $FILE.sam"
+    done
+
+    for FILE in $OUTPUTDIR/tmp/rightkept*
+    do
+    	dispatch "@BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $FILE > $FILE.sam; @SAMTOOLS@ view -Sb $FILE.sam > $FILE.bam; rm $FILE.sam"
+    done
+
+    wait
+
+    dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ merge left_kept.bam leftkept*.bam"
+    dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ merge right_kept.bam rightkept*.bam"
+
+    wait
+
+    dispatch "rm $OUTPUTDIR/tmp/leftkept* $OUTPUTDIR/tmp/rightkept*"
+    wait
+  else
+    dispatch "@BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/left_kept.fq > $OUTPUTDIR/tmp/left_kept.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/left_kept.sam > $OUTPUTDIR/tmp/left_kept.bam; rm $OUTPUTDIR/tmp/left_kept.sam"
+    dispatch "@BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/right_kept.fq > $OUTPUTDIR/tmp/right_kept.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/right_kept.sam > $OUTPUTDIR/tmp/right_kept.bam; rm $OUTPUTDIR/tmp/right_kept.sam"
+
+    wait
+  fi
+
+  dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ sort -Obam -Tlefttmp -n left_kept.bam > left_kept.sorted.bam"
+  
+  dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ sort -Obam -Trighttmp -n right_kept.bam > right_kept.sorted.bam"
+
+  wait
+
+  dispatch "$BINDIR/mapped-reads-merge $OUTPUTDIR/tmp/left_kept.sorted.bam $OUTPUTDIR/tmp/right_kept.sorted.bam $OUTPUTDIR/mapped_reads.bam $OUTPUTDIR/logs/alignment-statistics.txt"
+
+  wait
+
+
+  rm $OUTPUTDIR/tmp/left_kept.sorted.bam $OUTPUTDIR/tmp/right_kept.sorted.bam
+
+  #mv $OUTPUTDIR/tmp/left_kept.bam $OUTPUTDIR/left_kept.bam
+  #mv $OUTPUTDIR/tmp/right_kept.bam $OUTPUTDIR/right_kept.bam
+fi
+
+$SCRIPTDIR/remove-duplicates.pl $OUTPUTDIR/mapped_reads.bam | @SAMTOOLS@ view -Sb > $OUTPUTDIR/mapped_reads.rmdup.bam
+
+wait #finish all remaining processes
+
+echo "Calling peaks"
+
+@MACS2@ callpeak -t $OUTPUTDIR/mapped_reads.bam -n peaks -g $MACSGSIZE --nomodel --extsize 100 --outdir $OUTPUTDIR
+
+if [ $CALLBROADPEAK == "yes" ]
+then
+  @MACS2@ callpeak -t $OUTPUTDIR/mapped_reads.bam --broad -n peaks -g $MACSGSIZE --nomodel --extsize 100 --outdir $OUTPUTDIR
+  
+  cut -f 1-6 $OUTPUTDIR/peaks_peaks.narrowPeak > $OUTPUTDIR/peaks_merged.bed
+  cut -f 1-6 $OUTPUTDIR/peaks_peaks.broadPeak >> $OUTPUTDIR/peaks_merged.bed
+fi
+
+if [[ "$KEEPTMP" == "no" ]];
+then
+  echo "Cleaning up temporary directory"
+  rm -r $OUTPUTDIR/tmp
+fi
+
+
+echo "Done"
