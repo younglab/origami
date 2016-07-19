@@ -20,6 +20,7 @@ sub helpmenu {
 
 sub tobed {
   my $c = $_[0];
+  my $i = 1;
   
   while(<F>) {
     chomp;
@@ -31,7 +32,8 @@ sub tobed {
     my $size = ($arr[2]-$arr[1]) . ',' . ($arr[5]-$arr[4]);
     my $starts = ($arr[1]-$arr[1]) . ',' . ($arr[4]-$arr[1]);
     
-    print "$arr[0]\t$arr[1]\t$arr[5]\tInteraction\t$val\t+\t$arr[1]\t$arr[1]\t0,0,0\t2\t$size\t$starts\n";
+    print "$arr[0]\t$arr[1]\t$arr[5]\tInteraction$i\t$val\t+\t$arr[1]\t$arr[1]\t0,0,0\t2\t$size\t$starts\n";
+    $i++;
   }
 }
 
