@@ -23,4 +23,4 @@ install:
 	cp bin/origami-alignment bin/origami-analysis bin/origami-conversion ${bindir}
 	mkdir -p ${scriptdir}
 	cp -r scripts ${scriptdir}
-	cp src/mapped-reads-merged ${bindir}
+	cp src/mapped-reads-merge ${bindir}
