@@ -10,6 +10,7 @@ OUTPUTDIR=output
 VERBOSE=off
 SKIP=on
 PARALLEL=off
+RUNMODE=long
 SPLITNUM=4000000
 BZPOSTFIX="[.]bz2$"
 BOWTIEIDX=notafile
@@ -18,12 +19,7 @@ FORWARDLINKER="ACGCGATATCTTATCTGACT"
 REVERSELINKER="AGTCAGATAAGATATCGCGT"
 ABLINKERA="CTGCTGTCCG"
 ABLINKERB="CTGCTGTCAT"
-ABLINKERAREV="CGGACAGCAG"
-ABLINKERBREV="ATGACAGCAG"
-USEABLINKER=no
-USEHICHIP=no
-HICHIPLIGATIONJUNCTION="AAAA"
-USEABREVLINKER=no
+HICHIPLIGATIONJUNCTION=none
 PREPROCESSINGCMD=cat
 MINREADLENGTH=15
 MACSGSIZE=hs
@@ -32,6 +28,8 @@ CALLBROADPEAK=no
 ## other variables
 ORIGINALCMD="$0 $@"
 
+
+### utility functions
 
 verbose() {
 	if [ "$VERBOSE" = on ]
@@ -62,7 +60,7 @@ dispatch() {
 helpmenu() {
   if [ $# -eq 1 ];
   then
-    echo $1
+    printf "%s\n" $1
   fi
   
   printf "origami-alignment [options] <bowtie1 index> <first read FASTQ> <second read FASTQ>\n"
@@ -74,180 +72,40 @@ helpmenu() {
   printf "%15s\t%-50s\n" "-m,--min-len=" "minimum read-length to keep post trimming (default is 15 bp)"
   printf "%15s\t%-50s\n" "-p" "run parallel LSF mode (currently requires bsub)"
   printf "%15s\t%-50s\n" "--lsf-queue=[queue]" "set the LSF queue to use in parallel mode (implies -p)"
-  printf "%15s\t%-50s\n" "--splitnum=[NUM]" "split input reads into NUM smaller files during paralleization (default 40000000)"
+  printf "%15s\t%-50s\n" "--splitnum=[NUM]" "split input reads into NUM smaller files during paralleization (default 10000000)"
   printf "%15s\t%-50s\n" "--mode=[mode]" "run origami in long-read (long), AB-linker (ab), or HiChIP (hichip) mode (see documentation, default long)"
   printf "%15s\t%-50s\n" "--forward-linker=[DNA]"  "set the long-read foward-linker sequence (default ACGCGATATCTTATCTGACT)"
   printf "%15s\t%-50s\n" "--reverse-linker=[DNA]"  "set the long-read reverse-linker sequence (default AGTCAGATAAGATATCGCGT)"
   printf "%15s\t%-50s\n" "--a-linker=[DNA]" "set the AB-linker A-linker sequence (default CTGCTGTCCG)"
   printf "%15s\t%-50s\n" "--b-linker=[DNA]" "set the AB-linker B-linker sequence (default, CTGCTGTCAT)"
+  printf "%15s\t%-50s\n" "--junction=[DNA]" "set the junction to look for in HiChIP"
   printf "%15s\t%-50s\n" "--pp=[executable]" "run executable on each read file before trimming (must be executable, default none)"
   printf "%15s\t%-50s\n" "--macs-gsize=[string]" "set genome size for macs2 peak calling (default is 'hs')"
   printf "%15s\t%-50s\n" "--callbroadpeak" "calls broad peaks via macs2 and generates merged peak file"
   
 }
 
-TEMP=`getopt -o o:hvapm: -l output:,noskip,splitnum:,keep-tmp,lsf-queue:,forward-linker:,reverse-linker:,ab-linker,a-linker:,b-linker:,pp:,min-len:,macs-gsize:,with-ab-reverse,a-rev-linker:,b-rev-linker:,callbroadpeak,hichip: -n 'origami' -- "$@"`
-eval set -- "$TEMP"
+### functions related to read processing
 
-while [ $# -ge 1 ]; do
-	case "$1" in
-		--)
-			shift
-			break
-			;;
-		-o|--output)
-			OUTPUTDIR=$2
-			shift
-			;;
-		-h)
-			helpmenu
-			exit 0
-			;;
-		-v)
-			VERBOSE=on
-			;;
-		--noskip)
-			SKIP=off
-			;;
-		-p)
-			PARALLEL=on
-			;;
-		--splitnum)
-		  SPLITNUM=$(expr "$2" \* 4)
-		  shift
-		  ;;
-		--keep-tmp)
-		  KEEPTMP=yes
-		  ;;
-		--lsf-queue)
-		  LSFQUEUE="$2"
-		  PARALLEL=on
-		  shift
-		  ;;
-		--forward-linker)
-		  FORWARDLINKER="$2"
-		  shift
-		  ;;
-		--reverse-linker)
-		  REVERSELINKER="$2"
-		  shift
-		  ;;
-		--ab-linker)
-		  USEABLINKER=yes
-		  ;;
-		--a-linker)
-		  ABLINKERA="$2"
-		  USEABLINKER=yes
-		  shift
-		  ;;
-		--b-linker)
-		  ABLINKERB="$2"
-		  USEABLINKER=yes
-		  shift
-		  ;;
-		--with-ab-reverse)
-		  USEABREVLINKER=yes
-		  USEABLINKER=yes
-		  ;;
-		--a-rev-linker)
-		  ABLINKERAREV="$2"
-		  shift
-		  ;;
-		--b-rev-linker)
-		  ABLINKERBREV="$2"
-		  shift
-		  ;;
-		--pp)
-	    PREPROCESSINGCMD="$2"
-	    shift
-	    ;;
-	  -m|--min-len)
-	    MINREADLENGTH="$2"
-	    shift
-	    ;;
-	  --macs-gsize)
-	    MACSGSIZE="$2"
-	    shift
-	    ;;
-	  --callbroadpeak)
-	   CALLBROADPEAK=yes
-	   ;;
-	  --hichip)
-	    USEHICHIP=yes
-	    HICHIPLIGATIONJUNCTION="$2"
-	    shift
-	    ;;
-	esac
-	shift
-done
-
-if [ $# -lt 3 ];
-then
-  helpmenu "Error: did not supply necessary file name arguments"
-  exit 1
-fi
-
-BOWTIEIDX="$1"
-LEFTREADS="$2"
-RIGHTREADS="$3"
-
-if [[ "$PARALLEL" == "on" ]] && [[ ! -n "$LSFQUEUE" ]];
-then
-  helpmenu "Error: if using -p, then must use --lsf-queue"
-  exit 1
-fi
-
-
-echo "Launching origami..."
-
-verbose "Analyzing $LEFTREADS and $RIGHTREADS"
-
-verbose "Creating output directory"
-mkdir $OUTPUTDIR
-verbose "Creating temporary file directory"
-mkdir $OUTPUTDIR/tmp
-verbose "Creating logs directory"
-mkdir $OUTPUTDIR/logs
-
-echo "Running origami with the following command line: $ORIGINALCMD" > $OUTPUTDIR/logs/alignment-execution.txt
-
-if [[ "$VERBOSE" != "on" ]] && [[ "$PARALLEL" == "on" ]];
-then
-  export BSUB_QUIET=Y
-fi
-
-## Get file suffix (assumes same suffix for both left and right files)
-FILESUFFIX=${LEFTREADS##*.}
-
-case "$FILESUFFIX" in
-  gz)
-    CATFUNC=zcat
-    ;;
-  bz2)
-    CATFUNC=bzcat
-    ;;
-  *)
-    CATFUNC=cat
-    ;;
-esac
-
-echo "Removing adapter sequences on $LEFTREADS and $RIGHTREADS"
-if [[ $USEABLINKER = "yes" ]]
-then
-  echo "Running in AB-linker trimming mode"
-else
-  echo "Running in long-linker trimming mode"
-fi
-
-if [[ "$SKIP" == "off" || ! -e "$OUTPUTDIR/mapped_reads.bam" ]];
-then
-
-
+linkertrimming() {
+  
+  USEABLINKER="$1"
+  case $USEABLINKER in
+    yes)
+      echo "Running in AB-linker trimming mode"
+      ;;
+    no)
+      echo "Running in long-linker trimming mode"
+      ;;
+    *)
+      ## this shouldn't get here, but in case it does default to long-linker mode
+      echo "Running in long-linker trimming mode"
+      ;;
+  esac
+  
   if [ $PARALLEL = "on" ]
   then
-
     dispatch "$CATFUNC $LEFTREADS | $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/leftreads"
-    
     dispatch "$CATFUNC $RIGHTREADS | $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/rightreads"
   
     wait 
@@ -256,25 +114,14 @@ then
     LEFTREADS=($(ls $OUTPUTDIR/tmp/leftreads*))
     RIGHTREADS=($(ls $OUTPUTDIR/tmp/rightreads*))
     
-    ## structure of read trimming code influenced by Diego's work
-
     if [ $USEABLINKER = "yes" ]
     then
-
-      if [ $USEABREVLINKER = "yes" ]
-      then
-        AAPARAM="-a $ABLINKERA -A $ABLINKERA -a $ABLINKERAREV -A $ABLINKERAREV"
-        BBPARAM="-a $ABLINKERB -A $ABLINKERB -a $ABLINKERBREV -A $ABLINKERBREV"
-        ABPARAM="-a $ABLINKERA -A $ABLINKERB -a $ABLINKERAREV -A $ABLINKERBREV"
-        BAPARAM="-a $ABLINKERB -A $ABLINKERA -a $ABLINKERBREV -A $ABLINKERAREV"
-        NPARAM="-a $ABLINKERA -a $ABLINKERB -a $ABLINKERAREV -a $ABLINKERBREV -A $ABLINKERA -A $ABLINKERB -A $ABLINKERAREV -A $ABLINKERBREV"
-      else
-        AAPARAM="-a $ABLINKERA -A $ABLINKERA"
-        BBPARAM="-a $ABLINKERB -A $ABLINKERB"
-        ABPARAM="-a $ABLINKERA -A $ABLINKERB"
-        BAPARAM="-a $ABLINKERB -A $ABLINKERA"
-        NPARAM="-a $ABLINKERA -a $ABLINKERB -A $ABLINKERA -A $ABLINKERB"
-      fi
+      AAPARAM="-a $ABLINKERA -A $ABLINKERA"
+      BBPARAM="-a $ABLINKERB -A $ABLINKERB"
+      ABPARAM="-a $ABLINKERA -A $ABLINKERB"
+      BAPARAM="-a $ABLINKERB -A $ABLINKERA"
+      NPARAM="-a $ABLINKERA -a $ABLINKERB -A $ABLINKERA -A $ABLINKERB"
+      
       
       for((i=0;i<${#LEFTREADS[@]};++i)); do
         dispatch @CUTADAPTOR@ -f fastq -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $AAPARAM -o $OUTPUTDIR/tmp/l_same_aa_$i.fq -p $OUTPUTDIR/tmp/r_same_aa_$i.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
@@ -342,19 +189,11 @@ then
     
     if [ $USEABLINKER = "yes" ]
     then
-    
-      if [ $USEABREVLINKER = "yes" ]
-      then
-        AAPARAM="-a $ABLINKERA -A $ABLINKERA -a $ABLINKERAREV -A $ABLINKERAREV"
-        BBPARAM="-a $ABLINKERB -A $ABLINKERB -a $ABLINKERBREV -A $ABLINKERBREV"
-        ABPARAM="-a $ABLINKERA -A $ABLINKERB -a $ABLINKERAREV -A $ABLINKERBREV"
-        BAPARAM="-a $ABLINKERB -A $ABLINKERA -a $ABLINKERBREV -A $ABLINKERAREV"
-      else
-        AAPARAM="-a $ABLINKERA -A $ABLINKERA"
-        BBPARAM="-a $ABLINKERB -A $ABLINKERB"
-        ABPARAM="-a $ABLINKERA -A $ABLINKERB"
-        BAPARAM="-a $ABLINKERB -A $ABLINKERA"
-      fi
+      AAPARAM="-a $ABLINKERA -A $ABLINKERA"
+      BBPARAM="-a $ABLINKERB -A $ABLINKERB"
+      ABPARAM="-a $ABLINKERA -A $ABLINKERB"
+      BAPARAM="-a $ABLINKERB -A $ABLINKERA"
+      
     
       dispatch @CUTADAPTOR@ -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $AAPARAM -o $OUTPUTDIR/tmp/l_same_aa.fq -p $OUTPUTDIR/tmp/r_same_aa.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
       
@@ -371,10 +210,6 @@ then
       dispatch "cat $OUTPUTDIR/tmp/l_diff_ab.fq $OUTPUTDIR/tmp/l_diff_ba.fq > $OUTPUTDIR/tmp/left_chimeric.fq"
       
       dispatch "cat $OUTPUTDIR/tmp/r_diff_ab.fq $OUTPUTDIR/tmp/r_diff_ba.fq > $OUTPUTDIR/tmp/right_chimeric.fq"
-      
-    elif [ $USEHICHIP == "yes" ];
-
-
     else
 
       dispatch @CUTADAPTOR@ -n 3 -m $MINREADLENGTH --overlap 10 -a forward=$FORWARDLINKER -a reverse=$REVERSELINKER -o $OUTPUTDIR/tmp/l_t1.fq --untrimmed-output $OUTPUTDIR/tmp/l_nt1.fq -p $OUTPUTDIR/tmp/r_t1.fq --untrimmed-paired-output $OUTPUTDIR/tmp/r_nt1.fq $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
@@ -395,10 +230,10 @@ then
 
       wait
     fi
-    
-    rm $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
-  
   fi
+    
+  rm $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+
 
   ### Cleanup
   rm $OUTPUTDIR/tmp/l_*.fq $OUTPUTDIR/tmp/r_*.fq
@@ -415,25 +250,24 @@ then
   
   wait
 
-fi
-
-if [ $USEABLINKER = 'yes' ]
-then
-  mv $OUTPUTDIR/tmp/left_chimeric.fq.bz2 $OUTPUTDIR/.
-  mv $OUTPUTDIR/tmp/right_chimeric.fq.bz2 $OUTPUTDIR/.
-fi
-
-## Keep untrimmed reads
-mv $OUTPUTDIR/tmp/left_untrimmed.fq.bz2 $OUTPUTDIR/.
-mv $OUTPUTDIR/tmp/right_untrimmed.fq.bz2 $OUTPUTDIR/.
 
 
+  if [ $USEABLINKER = 'yes' ]
+  then
+    mv $OUTPUTDIR/tmp/left_chimeric.fq.bz2 $OUTPUTDIR/.
+    mv $OUTPUTDIR/tmp/right_chimeric.fq.bz2 $OUTPUTDIR/.
+  fi
 
-rm -f $OUTPUTDIR/tmp/left_unzip.fq  $OUTPUTDIR/tmp/right_unzip.fq
+  ## Keep untrimmed reads
+  mv $OUTPUTDIR/tmp/left_untrimmed.fq.bz2 $OUTPUTDIR/.
+  mv $OUTPUTDIR/tmp/right_untrimmed.fq.bz2 $OUTPUTDIR/.
 
-echo "Aligning reads"
-if [[ "$SKIP" == off || ! -e "$OUTPUTDIR/mapped_reads.bam" ]]; #&& $BINDIR/bowtie_align.sh $OUTPUTDIR $BOWTIEIDX $PARALLEL $SPLITNUM
-then
+
+
+  rm -f $OUTPUTDIR/tmp/left_unzip.fq  $OUTPUTDIR/tmp/right_unzip.fq
+
+  echo "Aligning reads"
+
   if [ $PARALLEL == "on" ];
   then
     dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/left_kept.fq $OUTPUTDIR/tmp/leftkept"
@@ -482,11 +316,184 @@ then
 
   #mv $OUTPUTDIR/tmp/left_kept.bam $OUTPUTDIR/left_kept.bam
   #mv $OUTPUTDIR/tmp/right_kept.bam $OUTPUTDIR/right_kept.bam
+
+}
+
+
+
+hichip() {
+  echo "Running in HiChIP mode"
+
+  exit 1
+}
+
+### process command line options
+
+TEMP=`getopt -o o:hvapm: -l output:,mode:,noskip,splitnum:,keep-tmp,lsf-queue:,forward-linker:,reverse-linker:,ab-linker,a-linker:,b-linker:,pp:,min-len:,macs-gsize:,callbroadpeak,junction: -n 'origami' -- "$@"`
+eval set -- "$TEMP"
+
+while [ $# -ge 1 ]; do
+	case "$1" in
+		--)
+			shift
+			break
+			;;
+		-o|--output)
+			OUTPUTDIR=$2
+			shift
+			;;
+		-h)
+			helpmenu
+			exit 0
+			;;
+		-v)
+			VERBOSE=on
+			;;
+		--noskip)
+			SKIP=off
+			;;
+		-p)
+			PARALLEL=on
+			;;
+		--mode)
+		  RUNMODE="$2"
+		  shift
+		  ;;
+		--splitnum)
+		  SPLITNUM=$(expr "$2" \* 4)
+		  shift
+		  ;;
+		--keep-tmp)
+		  KEEPTMP=yes
+		  ;;
+		--lsf-queue)
+		  LSFQUEUE="$2"
+		  PARALLEL=on
+		  shift
+		  ;;
+		--forward-linker)
+		  FORWARDLINKER="$2"
+		  shift
+		  ;;
+		--reverse-linker)
+		  REVERSELINKER="$2"
+		  shift
+		  ;;
+		--ab-linker)
+		  echo "This option is deprecated! Use --mode=ab instead"
+		  RUNMODE=ab
+		  ;;
+		--a-linker)
+		  ABLINKERA="$2"
+		  RUNMODE=ab
+		  shift
+		  ;;
+		--b-linker)
+		  ABLINKERB="$2"
+		  RUNMODE=ab
+		  shift
+		  ;;
+		--pp)
+	    PREPROCESSINGCMD="$2"
+	    shift
+	    ;;
+	  -m|--min-len)
+	    MINREADLENGTH="$2"
+	    shift
+	    ;;
+	  --macs-gsize)
+	    MACSGSIZE="$2"
+	    shift
+	    ;;
+	  --callbroadpeak)
+	   CALLBROADPEAK=yes
+	   ;;
+	  --junction)
+	   HICHIPLIGATIONJUNCTION="$2"
+	   RUNMODE=hichip
+	   shift
+	   ;;
+	esac
+	shift
+done
+
+if [ $# -lt 3 ];
+then
+  helpmenu "Error: did not supply necessary file name arguments"
+  exit 1
 fi
 
+BOWTIEIDX="$1"
+LEFTREADS="$2"
+RIGHTREADS="$3"
+
+if [[ "$PARALLEL" == "on" ]] && [[ ! -n "$LSFQUEUE" ]];
+then
+  helpmenu "Error: if using -p, then must use --lsf-queue"
+  exit 1
+fi
+
+
+echo "Launching origami..."
+
+verbose "Analyzing $LEFTREADS and $RIGHTREADS"
+
+verbose "Creating output directory"
+mkdir $OUTPUTDIR
+verbose "Creating temporary file directory"
+mkdir $OUTPUTDIR/tmp
+verbose "Creating logs directory"
+mkdir $OUTPUTDIR/logs
+
+echo "Running origami with the following command line: $ORIGINALCMD" > $OUTPUTDIR/logs/alignment-execution.txt
+
+if [[ "$VERBOSE" != "on" ]] && [[ "$PARALLEL" == "on" ]];
+then
+  export BSUB_QUIET=Y
+fi
+
+## Get file suffix (assumes same suffix for both left and right files)
+FILESUFFIX=${LEFTREADS##*.}
+
+case "$FILESUFFIX" in
+  gz)
+    CATFUNC=zcat
+    ;;
+  bz2)
+    CATFUNC=bzcat
+    ;;
+  *)
+    CATFUNC=cat
+    ;;
+esac
+
+if [[ "$SKIP" == "off" || ! -e "$OUTPUTDIR/mapped_reads.bam" ]];
+then
+  case "$RUNMODE" in
+    long)
+      linkertrimming "no"
+    ;;
+    ab)
+      linkertrimming "yes"
+    ;;
+    hichip)
+      hichip
+    ;;
+    *)
+      helpmenu "Error: invalid run mode entered, must be one of: long, ab, or hichip"
+      exit 1
+    ;;
+  esac
+else
+  echo "Skipping read processing, already detect the presence of $OUTPUTDIR/mapped_reads.bam"
+fi
+
+wait #finish all remaining processes from read trimming
+
+
+echo "Filtering out duplicated PETs"
 $SCRIPTDIR/remove-duplicates.pl $OUTPUTDIR/mapped_reads.bam | @SAMTOOLS@ view -Sb > $OUTPUTDIR/mapped_reads.rmdup.bam
 
-wait #finish all remaining processes
 
 echo "Calling peaks"
 
