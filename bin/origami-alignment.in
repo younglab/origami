@@ -21,6 +21,8 @@ ABLINKERB="CTGCTGTCAT"
 ABLINKERAREV="CGGACAGCAG"
 ABLINKERBREV="ATGACAGCAG"
 USEABLINKER=no
+USEHICHIP=no
+HICHIPLIGATIONJUNCTION="AAAA"
 USEABREVLINKER=no
 PREPROCESSINGCMD=cat
 MINREADLENGTH=15
@@ -62,29 +64,29 @@ helpmenu() {
   then
     echo $1
   fi
-  echo "origami-alignment [options] <bowtie index> <first FASTQ> <second FASTQ>"
-  echo "  For the FASTQ files, they may be either in plan text (no compression), gzip (.gz),"
-  echo "    or bzip2 (.bz2) format (automatically deteced by file suffix)"
-  echo ""
-  echo "  -o,--output= output directory (default output)"
-  echo "  -h Help menu"
-  echo "  -v verbose mode"
-  echo "  -p parallel LSF mode (distributed bsub)"
-  echo "  -m,--min-len=   Minimum length of read post-trimming to be kept (default is 15 bp)"
-  echo "  --splitnum=<NUM> Split reads into NUM for -p (default none)"
-  echo "  --keep-tmp Keep temporary directory (default is to remove it when finished)"
-  echo "  --lsf-queue= Set the queue name for LSF (implies -p)"
-  echo "  --forward-linker=  Set the foward-linker sequence (default ACGCGATATCTTATCTGACT)"
-  echo "  --reverse-linker=  Set the reverse-linker sequence (default AGTCAGATAAGATATCGCGT)"
-  echo "  --ab-linker   Run alignment using AB-linker setup (default, non-AB linker trimming)"
-  echo "  --a-linker=   Set the A-linker sequence (default, CTGCTGTCCG, implies --ab-linker)"
-  echo "  --b-linker=   Set the B-linker sequence (default, CTGCTGTCAT, implies --ab-linker)"
-  echo "  --pp=         Run pre-preprocessing command on reads before linker trimming (must be executable, default none)"
-  echo "  --macs-gsize=     Set genome size for macs2 peak calling (default=hs)"
-  echo "  --callbroadpeak   Calls broad peak via macs2 and generates merged file (for factors that have narrow and broad binding)"
+  
+  printf "origami-alignment [options] <bowtie1 index> <first read FASTQ> <second read FASTQ>\n"
+  printf "\tFor the FASTQ files, they may be either in plain text (no compression), gzip (.gz),\n"
+  printf "\tor bzip2 (.bz2) format (automatically deteced by file suffix)\n\n"
+  printf "%15s\t%-50s\n" "-o,--output=" "directory to output the alignment results (default is output/)"
+  printf "%15s\t%-50s\n" "-h" "help menu (this menu)"
+  printf "%15s\t%-50s\n" "-v" "turn on verbose mode"
+  printf "%15s\t%-50s\n" "-m,--min-len=" "minimum read-length to keep post trimming (default is 15 bp)"
+  printf "%15s\t%-50s\n" "-p" "run parallel LSF mode (currently requires bsub)"
+  printf "%15s\t%-50s\n" "--lsf-queue=[queue]" "set the LSF queue to use in parallel mode (implies -p)"
+  printf "%15s\t%-50s\n" "--splitnum=[NUM]" "split input reads into NUM smaller files during paralleization (default 40000000)"
+  printf "%15s\t%-50s\n" "--mode=[mode]" "run origami in long-read (long), AB-linker (ab), or HiChIP (hichip) mode (see documentation, default long)"
+  printf "%15s\t%-50s\n" "--forward-linker=[DNA]"  "set the long-read foward-linker sequence (default ACGCGATATCTTATCTGACT)"
+  printf "%15s\t%-50s\n" "--reverse-linker=[DNA]"  "set the long-read reverse-linker sequence (default AGTCAGATAAGATATCGCGT)"
+  printf "%15s\t%-50s\n" "--a-linker=[DNA]" "set the AB-linker A-linker sequence (default CTGCTGTCCG)"
+  printf "%15s\t%-50s\n" "--b-linker=[DNA]" "set the AB-linker B-linker sequence (default, CTGCTGTCAT)"
+  printf "%15s\t%-50s\n" "--pp=[executable]" "run executable on each read file before trimming (must be executable, default none)"
+  printf "%15s\t%-50s\n" "--macs-gsize=[string]" "set genome size for macs2 peak calling (default is 'hs')"
+  printf "%15s\t%-50s\n" "--callbroadpeak" "calls broad peaks via macs2 and generates merged peak file"
+  
 }
 
-TEMP=`getopt -o o:hvapm: -l output:,noskip,splitnum:,keep-tmp,lsf-queue:,forward-linker:,reverse-linker:,ab-linker,a-linker:,b-linker:,pp:,min-len:,macs-gsize:,with-ab-reverse,a-rev-linker:,b-rev-linker:,callbroadpeak -n 'origami' -- "$@"`
+TEMP=`getopt -o o:hvapm: -l output:,noskip,splitnum:,keep-tmp,lsf-queue:,forward-linker:,reverse-linker:,ab-linker,a-linker:,b-linker:,pp:,min-len:,macs-gsize:,with-ab-reverse,a-rev-linker:,b-rev-linker:,callbroadpeak,hichip: -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -170,6 +172,11 @@ while [ $# -ge 1 ]; do
 	  --callbroadpeak)
 	   CALLBROADPEAK=yes
 	   ;;
+	  --hichip)
+	    USEHICHIP=yes
+	    HICHIPLIGATIONJUNCTION="$2"
+	    shift
+	    ;;
 	esac
 	shift
 done
@@ -364,6 +371,8 @@ then
       dispatch "cat $OUTPUTDIR/tmp/l_diff_ab.fq $OUTPUTDIR/tmp/l_diff_ba.fq > $OUTPUTDIR/tmp/left_chimeric.fq"
       
       dispatch "cat $OUTPUTDIR/tmp/r_diff_ab.fq $OUTPUTDIR/tmp/r_diff_ba.fq > $OUTPUTDIR/tmp/right_chimeric.fq"
+      
+    elif [ $USEHICHIP == "yes" ];
 
 
     else
