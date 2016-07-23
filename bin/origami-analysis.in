@@ -184,15 +184,17 @@ then
 
   $SCRIPTDIR/estimate-counts.pl $PREFIX-raw-interactions.out > $OUTFILE
   
+  cp $OUTFILE "tmp.out" ### keep temporary for now for debugging purposes
+  
   if [ $MINDIST -gt 0 ];
   then
-    awk 'function abs(value) { return (value<0?-value:value); } { if($1!=$4 || abs($5-$3) >= $MINDIST) print }' $OUTFILE > $CARRYFILE
+    awk 'function abs(value) { return (value<0?-value:value); } { if($1!=$4 || $3==$5 || abs($5-$3) >= $MINDIST) print }' $OUTFILE > $CARRYFILE
     mv $CARRYFILE $OUTFILE
   fi
   
   if [ $MAXDIST -gt 0 ];
   then
-    awk 'function abs(value) { return (value<0?-value:value); } { if($1!=$4 || abs($5-$3) <= $MAXDIST) print }' $OUTFILE > $CARRYFILE
+    awk 'function abs(value) { return (value<0?-value:value); } { if($1!=$4 || $3==$5 || abs($5-$3) <= $MAXDIST) print }' $OUTFILE > $CARRYFILE
     mv $CARRYFILE $OUTFILE
   fi
   
@@ -202,7 +204,7 @@ then
     mv $CARRYFILE $OUTFILE
   fi
   
-  mv $OUTFILE $PREFIX-raw-int-counts.txt
+  mv $OUTFILE $PREFIX-raw-int-counts.txt 
 fi
 
 rm $TMPFILE 
