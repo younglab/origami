@@ -151,7 +151,7 @@ if [ $ZSCOREFILTER != "no" ];
 then
   FILTERBEDTMP=$RANDOM.keeppeaks.bed
   TRANSTMP=$RANDOM.trans.out
-  Rscript $SCRIPTDIR/peaks-zscore.r $PREFIX-raw-counts.out $FILTERBEDTMP $ZSCOREFILTER
+  @RSCRIPTEXE@ $SCRIPTDIR/peaks-zscore.r $PREFIX-raw-counts.out $FILTERBEDTMP $ZSCOREFILTER
   @BEDTOOLS@ intersect -wa -a $PREFIX-raw-counts.out -b $FILTERBEDTMP > $TRANSTMP
   mv $TRANSTMP $PREFIX-raw-counts.out ## removed filtered counts
   @BEDTOOLS@ intersect -wa -a $TMPFILE -b $FILTERBEDTMP > $TRANSTMP
@@ -172,7 +172,7 @@ echo "Estimating interaction belief..."
 
 if [ $ONLYMAP == "no" ];
 then
-  Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL $USEDISTANCE $USEDF
+  @RSCRIPTEXE@ $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL $USEDISTANCE $USEDF
 fi
 
 if [ $ASSIGNTOPEAKS != "no" ] && [ $ONLYMAP == "no" ]

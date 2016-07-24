@@ -34,6 +34,7 @@ AC_CHECK_TOOLS([MACS2],[macs2],[no])
 AC_CHECK_TOOLS([BOWTIE],[bowtie],[no])
 AC_CHECK_TOOLS([BEDTOOLS],[bedtools],[no])
 AC_CHECK_TOOLS([REXE],[R],[no])
+AC_CHECK_TOOLS([RSCRIPTEXE],[Rscript],[no])
 AC_CHECK_TOOLS([SAMTOOLS],[samtools],[no])
 AC_CHECK_TOOLS([PERL],[perl],[no])
 AC_PROG_CXX([g++ gcc])
@@ -61,6 +62,11 @@ fi
 if test "$ac_cv_prog_REXE" == no
 then
   AC_MSG_ERROR([Cannot find R in PATH, please either add R to PATH or set REXE=/path/to/R manually])
+fi
+
+if test "$ac_cv_prog_RSCRIPTEXE" == no
+then
+  AC_MSG_ERROR([Cannot find Rscript in PATH, please either add Rscript to PATH or set RSCRIPTEXE=/path/to/Rscript manually])
 fi
 
 if test "$ac_cv_prog_SAMTOOLS" == no
