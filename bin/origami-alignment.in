@@ -60,7 +60,7 @@ dispatch() {
 helpmenu() {
   if [ $# -eq 1 ];
   then
-    printf "%s\n" $1
+    echo $1
   fi
   
   printf "origami-alignment [options] <bowtie1 index> <first read FASTQ> <second read FASTQ>\n"
@@ -199,7 +199,7 @@ linkertrimming() {
       
       dispatch @CUTADAPTOR@ -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BBPARAM -o $OUTPUTDIR/tmp/l_same_bb.fq -p $OUTPUTDIR/tmp/r_same_bb.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
 
-      dispatch @CUTADAPTOR@ -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $ABPARAM -o $OUTPUTDIR/tmp/l_diff_ab.fq -p $OUTPUTDIR/tmp/r_diff_ab.fq  $OUTPUTDIR/tmp/right_reads.fq
+      dispatch @CUTADAPTOR@ -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $ABPARAM -o $OUTPUTDIR/tmp/l_diff_ab.fq -p $OUTPUTDIR/tmp/r_diff_ab.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
 
       dispatch @CUTADAPTOR@ -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BAPARAM -o $OUTPUTDIR/tmp/l_diff_ba.fq -p $OUTPUTDIR/tmp/r_diff_ba.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
 
@@ -301,9 +301,18 @@ linkertrimming() {
     wait
   fi
 
-  dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ sort -Obam -Tlefttmp -n left_kept.bam > left_kept.sorted.bam"
+  if [ $PARALLEL = "on" ];
+  then
+    dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ sort -Obam -Tlefttmp -n left_kept.bam > left_kept.sorted.bam"
   
-  dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ sort -Obam -Trighttmp -n right_kept.bam > right_kept.sorted.bam"
+    dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ sort -Obam -Trighttmp -n right_kept.bam > right_kept.sorted.bam"
+  else
+    cd $OUTPUTDIR/tmp
+    dispatch "@SAMTOOLS@ sort -Obam -Tlefttmp -n left_kept.bam > left_kept.sorted.bam"
+  
+    dispatch "@SAMTOOLS@ sort -Obam -Trighttmp -n right_kept.bam > right_kept.sorted.bam"
+    cd ../..
+  fi
 
   wait
 
