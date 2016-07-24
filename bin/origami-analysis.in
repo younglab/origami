@@ -144,7 +144,7 @@ fi
 
 if [ ! -e "$PREFIX-raw-counts.out" ];
 then
-  @BEDTOOLS@ coverage -counts -abam $READSFILE -b $TMPFILE > $PREFIX-raw-counts.out
+  @BEDTOOLSCOVERAGE@
 fi
 
 if [ $ZSCOREFILTER != "no" ];

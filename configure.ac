@@ -1,8 +1,33 @@
 AC_INIT(origami,0.1)
 
+####  
+
+## params
+## $1 -- library to check
+AC_DEFUN([R_LIBRARY_TEST],[
+  AC_MSG_CHECKING([if R library $1 is installed])
+  VAL=`$ac_cv_prog_ac_ct_REXE --no-save &> /dev/null <<END 
+library($1)
+END
+`
+
+  
+  if test $? -eq 0
+  then
+    AC_MSG_RESULT([yes])
+  else
+    AC_MSG_RESULT([no])
+    AC_MSG_WARN([R library $1 is not installed (or at least accessible by the identified R executable in REXE), please install before using the package])
+  fi
+])
+
+####
+
 AC_LANG_PUSH([C++])
 
 AC_MSG_NOTICE([Checking for software tools needed by origami])
+
+AC_ARG_VAR([BEDTOOLS],[Path to the bedtools executable])
 
 AC_CHECK_TOOLS([CUTADAPTOR],[cutadapt],[no])
 AC_CHECK_TOOLS([MACS2],[macs2],[no])
@@ -48,12 +73,24 @@ then
   AC_MSG_ERROR([Cannot find perl in PATH, please either add perl to PATH or set PERL=/path/to/perl manually])
 fi
 
+AC_MSG_NOTICE([Checking for bedtools version])
+
+if test `bedtools --version | cut -d ' ' -f 2 | cut -d '.' -f 2` -lt 24
+then
+  BEDTOOLSCOVERAGE="$BEDTOOLS coverage -counts -abam \$READSFILE -b \$TMPFILE > \$PREFIX-raw-counts.out"
+else
+  BEDTOOLSCOVERAGE="$BEDTOOLS coverage -counts -a \$TMPFILE -b \$READSFILE  > \$PREFIX-raw-counts.out"
+fi
+
+AC_SUBST([BEDTOOLSCOVERAGE])
+
 AC_MSG_NOTICE([Checking for C++ libraries needed by origami])
 AC_CHECK_HEADER([api/BamReader.h])
 AC_CHECK_HEADER([api/BamWriter.h])
 
 AC_MSG_NOTICE([Checking for R libraries needed by origami])
-### GenomicRanges,
+R_LIBRARY_TEST([GenomicRanges])
+R_LIBRARY_TEST([matrixStats])
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([bin/origami-alignment],[chmod 775 bin/origami-alignment])
