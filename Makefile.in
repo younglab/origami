@@ -20,7 +20,7 @@ dist:
 
 install:
 	mkdir -p ${bindir}
-	cp bin/origami-alignment bin/origami-analysis bin/origami-conversion bin/origami-chip-profile bin/origami-merge-replicates ${bindir}
+	cp bin/origami-alignment bin/origami-analysis bin/origami-conversion bin/origami-chip-profile bin/origami-merge-replicate-files ${bindir}
 	mkdir -p ${scriptdir}
 	cp -r scripts ${scriptdir}
 	cp src/mapped-reads-merge ${bindir}
