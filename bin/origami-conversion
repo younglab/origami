@@ -8,9 +8,11 @@ use Getopt::Long;
 
 my $showhelp = '';
 my $center = 0;
+my $bedmult = 1000;
 
 GetOptions("help|h"=>\$showhelp,
-            "center|c:100"=>\$center)
+            "center|c:100"=>\$center,
+            "bedmultiplier=i"=>\$bedmult)
 or die "Error in parsing arguments";
 
 
@@ -22,13 +24,15 @@ sub tobed {
   my $c = $_[0];
   my $i = 1;
   
+  die "Bed multiplier must be an integer greater than 0!" if $bedmult <= 0;
+  
   while(<F>) {
     chomp;
     my @arr = split /,/;
     
     next unless $arr[0] eq $arr[3]; # only print lines with intrachromosomal interactions (since BED is not designed to handle interchromsomal data)
     
-    my $val = floor($arr[5+$c]*1000);
+    my $val = floor($arr[5+$c]*$bedmult);
     my $size = ($arr[2]-$arr[1]) . ',' . ($arr[5]-$arr[4]);
     my $starts = ($arr[1]-$arr[1]) . ',' . ($arr[4]-$arr[1]);
     

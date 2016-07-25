@@ -15,12 +15,12 @@ clean:
 	cd src && rm *.o mapped-reads-merge
 
 dist:
-	tar -cvf origami.tar configure.ac configure Makefile.in README.md INSTALL bin/origami-conversion bin/origami-analysis.in bin/origami-alignment.in scripts/* src/mapped-reads-merge.cpp
+	tar -cvf origami.tar configure.ac configure Makefile.in README.md INSTALL bin/origami-conversion bin/origami-analysis.in bin/origami-alignment.in bin/origami-chip-profile bin/origami-merge-replicate-files scripts/* src/mapped-reads-merge.cpp
 	gzip origami.tar
 
 install:
 	mkdir -p ${bindir}
-	cp bin/origami-alignment bin/origami-analysis bin/origami-conversion ${bindir}
+	cp bin/origami-alignment bin/origami-analysis bin/origami-conversion bin/origami-chip-profile bin/origami-merge-replicate-files ${bindir}
 	mkdir -p ${scriptdir}
 	cp -r scripts ${scriptdir}
 	cp src/mapped-reads-merge ${bindir}
