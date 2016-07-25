@@ -332,7 +332,33 @@ linkertrimming() {
 
 hichip() {
   echo "Running in HiChIP mode"
+  
+  if [ "$HICHIPLIGATIONJUNCTION" == "none" ];
+  then
+    helpmenu "Error: when using HiChIP mode, need to set the expected ligation junction sequence"
+    exit 1
+  fi
+  
+  verbosecmd "$CATFUNC $LEFTREADS | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/left_reads.fq"
+  verbosecmd "$CATFUNC $RIGHTREADS | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/right_reads.fq"
+  
+  @BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/left_reads.fq > $OUTPUTDIR/tmp/left_initial.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/left_initial.sam > $OUTPUTDIR/tmp/left_initial.bam; rm $OUTPUTDIR/tmp/left_initial.sam
+  @BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/right_reads.fq > $OUTPUTDIR/tmp/right_initial.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/right_initial.sam > $OUTPUTDIR/tmp/right_initial.bam; rm $OUTPUTDIR/tmp/right_initial.sam
+  
+  @SAMTOOLS@ fastq -f 0x4 $OUTPUTDIR/tmp/left_initial.bam > $OUTPUTDIR/tmp/left_unmapped.fastq
+  @SAMTOOLS@ view -bh -F 0x4 $OUTPUTDIR/tmp/left_initial.bam > $OUTPUTDIR/tmp/left_mapped.bam
+  
+  @SAMTOOLS@ fastq -f 0x4 $OUTPUTDIR/tmp/right_initial.bam > $OUTPUTDIR/tmp/right_unmapped.fastq
+  @SAMTOOLS@ view -bh -F 0x4 $OUTPUTDIR/tmp/right_initial.bam > $OUTPUTDIR/tmp/right_mapped.bam
 
+  @CUTADAPTOR@ -a $HICHIPLIGATIONJUNCTION =m $MINREADLENGTH -o $OUTPUTDIR/tmp/left_trimmed.fastq $OUTPUTDIR/tmp/left_unmapped.fastq
+  @CUTADAPTOR@ -a $HICHIPLIGATIONJUNCTION =m $MINREADLENGTH -o $OUTPUTDIR/tmp/right_trimmed.fastq $OUTPUTDIR/tmp/right_unmapped.fastq
+
+  @BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/left_trimmed.fastq > $OUTPUTDIR/tmp/left_trimmed.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/left_trimmed.sam > $OUTPUTDIR/tmp/left_trimmed.bam; rm $OUTPUTDIR/tmp/left_trimmed.sam
+  @BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/right_trimmed.fastq > $OUTPUTDIR/tmp/right_trimmed.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/right_trimmed.sam > $OUTPUTDIR/tmp/right_trimmed.bam; rm $OUTPUTDIR/tmp/right_trimmed.sam
+
+
+  echo "End of test mode"
   exit 1
 }
 
