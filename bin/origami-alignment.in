@@ -351,11 +351,20 @@ hichip() {
   @SAMTOOLS@ fastq -f 0x4 $OUTPUTDIR/tmp/right_initial.bam > $OUTPUTDIR/tmp/right_unmapped.fastq
   @SAMTOOLS@ view -bh -F 0x4 $OUTPUTDIR/tmp/right_initial.bam > $OUTPUTDIR/tmp/right_mapped.bam
 
-  @CUTADAPTOR@ -a $HICHIPLIGATIONJUNCTION =m $MINREADLENGTH -o $OUTPUTDIR/tmp/left_trimmed.fastq $OUTPUTDIR/tmp/left_unmapped.fastq
-  @CUTADAPTOR@ -a $HICHIPLIGATIONJUNCTION =m $MINREADLENGTH -o $OUTPUTDIR/tmp/right_trimmed.fastq $OUTPUTDIR/tmp/right_unmapped.fastq
+  @CUTADAPTOR@ -a $HICHIPLIGATIONJUNCTION -m $MINREADLENGTH -o $OUTPUTDIR/tmp/left_trimmed.fastq $OUTPUTDIR/tmp/left_unmapped.fastq
+  @CUTADAPTOR@ -a $HICHIPLIGATIONJUNCTION -m $MINREADLENGTH -o $OUTPUTDIR/tmp/right_trimmed.fastq $OUTPUTDIR/tmp/right_unmapped.fastq
 
   @BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/left_trimmed.fastq > $OUTPUTDIR/tmp/left_trimmed.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/left_trimmed.sam > $OUTPUTDIR/tmp/left_trimmed.bam; rm $OUTPUTDIR/tmp/left_trimmed.sam
   @BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/right_trimmed.fastq > $OUTPUTDIR/tmp/right_trimmed.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/right_trimmed.sam > $OUTPUTDIR/tmp/right_trimmed.bam; rm $OUTPUTDIR/tmp/right_trimmed.sam
+
+  @SAMTOOLS@ merge -@ 6 -n $OUTPUTDIR/tmp/left_merged.bam $OUTPUTDIR/tmp/left_mapped.bam $OUTPUTDIR/tmp/left_trimmed.bam
+  @SAMTOOLS@ merge -@ 6 -n $OUTPUTDIR/tmp/right_merged.bam $OUTPUTDIR/tmp/right_mapped.bam $OUTPUTDIR/tmp/right_trimmed.bam
+  
+  #cd $OUTPUTDIR/tmp
+  #@SAMTOOLS@ sort 
+  #cd ../..
+
+  #$BINDIR/mapped-reads-merge $OUTPUTDIR/tmp/left_kept.sorted.bam $OUTPUTDIR/tmp/right_kept.sorted.bam $OUTPUTDIR/mapped_reads.bam $OUTPUTDIR/logs/alignment-statistics.txt
 
 
   echo "End of test mode"
