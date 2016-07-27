@@ -365,11 +365,10 @@ hichip() {
   @SAMTOOLS@ sort -@ 6 -n -Trightdata right_merged.bam > right_kept.sorted.bam
   cd ../..
 
-  #$BINDIR/mapped-reads-merge $OUTPUTDIR/tmp/left_kept.sorted.bam $OUTPUTDIR/tmp/right_kept.sorted.bam $OUTPUTDIR/mapped_reads.bam $OUTPUTDIR/logs/alignment-statistics.txt
+  ### run mode to check 
+  $BINDIR/mapped-reads-merge $OUTPUTDIR/tmp/left_kept.sorted.bam $OUTPUTDIR/tmp/right_kept.sorted.bam $OUTPUTDIR/mapped_reads.bam $OUTPUTDIR/logs/alignment-statistics.txt yes
 
 
-  echo "End of test mode"
-  exit 1
 }
 
 ### process command line options
