@@ -360,9 +360,10 @@ hichip() {
   @SAMTOOLS@ merge -@ 6 -n $OUTPUTDIR/tmp/left_merged.bam $OUTPUTDIR/tmp/left_mapped.bam $OUTPUTDIR/tmp/left_trimmed.bam
   @SAMTOOLS@ merge -@ 6 -n $OUTPUTDIR/tmp/right_merged.bam $OUTPUTDIR/tmp/right_mapped.bam $OUTPUTDIR/tmp/right_trimmed.bam
   
-  #cd $OUTPUTDIR/tmp
-  #@SAMTOOLS@ sort 
-  #cd ../..
+  cd $OUTPUTDIR/tmp
+  @SAMTOOLS@ sort -@ 6 -n -Tleftdata left_merged.bam >left_kept.sorted.bam
+  @SAMTOOLS@ sort -@ 6 -n -Trightdata right_merged.bam > right_kept.sorted.bam
+  cd ../..
 
   #$BINDIR/mapped-reads-merge $OUTPUTDIR/tmp/left_kept.sorted.bam $OUTPUTDIR/tmp/right_kept.sorted.bam $OUTPUTDIR/mapped_reads.bam $OUTPUTDIR/logs/alignment-statistics.txt
 
