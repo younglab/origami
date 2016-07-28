@@ -72,6 +72,7 @@ helpmenu() {
   printf "%15s\t%-50s\n" "-m,--min-len=" "minimum read-length to keep post trimming (default is 15 bp)"
   printf "%15s\t%-50s\n" "-p" "run parallel LSF mode (currently requires bsub)"
   printf "%15s\t%-50s\n" "--lsf-queue=[queue]" "set the LSF queue to use in parallel mode (implies -p)"
+  printf "%15s\t%-50s\n" "--keep-tmp" "don't delete the temporary files"
   printf "%15s\t%-50s\n" "--splitnum=[NUM]" "split input reads into NUM smaller files during paralleization (default 10000000)"
   printf "%15s\t%-50s\n" "--mode=[mode]" "run origami in long-read (long), AB-linker (ab), or HiChIP (hichip) mode (see documentation, default long)"
   printf "%15s\t%-50s\n" "--forward-linker=[DNA]"  "set the long-read foward-linker sequence (default ACGCGATATCTTATCTGACT)"
