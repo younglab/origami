@@ -46,12 +46,14 @@ int main(int argc,char **argv) {
       pairmapped=0,singleton=0,neither=0;
     
     if(checkreads) {
-      int lastrefid = -1;
+      std::string lastrefname ="";
       while( left.GetNextAlignment(l)) {
         if(!right.GetNextAlignment(r)) break;
         
         if(l.Name != r.Name) {
-          lastrefid = r.RefID;
+          std::cerr << "not a match" << std::endl;
+          
+          lastrefname = r.Name;
           
           bool b;
           while(b = right.GetNextAlignment(r)) {
@@ -95,10 +97,21 @@ int main(int argc,char **argv) {
               r.SetIsSecondMate(true);
               r.SetIsProperPair(true);
               writer.SaveAlignment(r);
+              
+              std::cerr << "found a match" << std::endl;
+              
+              break;
             }
           }
           if(!b) { // no match for left side, skip alignment
-            right.Jump(lastrefid);
+            right.Rewind();
+            //right.Jump(lastrefid);
+            right.GetNextAlignment(r);
+            while(lastrefname != r.Name) {
+              
+              if(!right.GetNextAlignment(r)) break;
+            }
+            std::cerr << "jump" << std::endl;
           }
         } else {
           totalpairs++;

@@ -343,31 +343,23 @@ hichip() {
   verbosecmd "$CATFUNC $LEFTREADS | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/left_reads.fq"
   verbosecmd "$CATFUNC $RIGHTREADS | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/right_reads.fq"
   
-  @BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/left_reads.fq > $OUTPUTDIR/tmp/left_initial.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/left_initial.sam > $OUTPUTDIR/tmp/left_initial.bam; rm $OUTPUTDIR/tmp/left_initial.sam
-  @BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/right_reads.fq > $OUTPUTDIR/tmp/right_initial.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/right_initial.sam > $OUTPUTDIR/tmp/right_initial.bam; rm $OUTPUTDIR/tmp/right_initial.sam
+  @CUTADAPTOR@ -a $HICHIPLIGATIONJUNCTION -m $MINREADLENGTH -o $OUTPUTDIR/tmp/left_trimmed.fastq --untrimmed-output=$OUTPURDIR/tmp/left_untrimmed.fastq -p $OUTPUTDIR/tmp/right_left_trimmed.fastq --untrimmed-paired-output=$OUTPUTDIR/tmp/right_left_untrimmed.fastq $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+  @CUTADAPTOR@ -a $HICHIPLIGATIONJUNCTION -m $MINREADLENGTH -o $OUTPUTDIR/tmp/right_trimmed.fastq --untrimmed-output=$OUTPURDIR/tmp/right_untrimmed.fastq -p $OUTPUTDIR/tmp/left_right_trimmed.fastq --untrimmed-paired-output=$OUTPUTDIR/tmp/left_right_untrimmed.fastq $OUTPUTDIR/tmp/right_left_untrimmed.fastq $OUTPURDIR/tmp/left_untrimmed.fastq
+
+  cat $OUTPUTDIR/tmp/left_trimmed.fastq  $OUTPUTDIR/tmp/left_right_trimmed.fastq > $OUTPUTDIR/tmp/left_reads.fq
+  cat $OUTPUTDIR/tmp/right_trimmed.fastq  $OUTPUTDIR/tmp/right_left_trimmed.fastq > $OUTPUTDIR/tmp/right_reads.fq
+
   
-  @SAMTOOLS@ fastq -f 0x4 $OUTPUTDIR/tmp/left_initial.bam > $OUTPUTDIR/tmp/left_unmapped.fastq
-  @SAMTOOLS@ view -bh -F 0x4 $OUTPUTDIR/tmp/left_initial.bam > $OUTPUTDIR/tmp/left_mapped.bam
-  
-  @SAMTOOLS@ fastq -f 0x4 $OUTPUTDIR/tmp/right_initial.bam > $OUTPUTDIR/tmp/right_unmapped.fastq
-  @SAMTOOLS@ view -bh -F 0x4 $OUTPUTDIR/tmp/right_initial.bam > $OUTPUTDIR/tmp/right_mapped.bam
-
-  @CUTADAPTOR@ -a $HICHIPLIGATIONJUNCTION -m $MINREADLENGTH -o $OUTPUTDIR/tmp/left_trimmed.fastq $OUTPUTDIR/tmp/left_unmapped.fastq
-  @CUTADAPTOR@ -a $HICHIPLIGATIONJUNCTION -m $MINREADLENGTH -o $OUTPUTDIR/tmp/right_trimmed.fastq $OUTPUTDIR/tmp/right_unmapped.fastq
-
-  @BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/left_trimmed.fastq > $OUTPUTDIR/tmp/left_trimmed.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/left_trimmed.sam > $OUTPUTDIR/tmp/left_trimmed.bam; rm $OUTPUTDIR/tmp/left_trimmed.sam
-  @BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/right_trimmed.fastq > $OUTPUTDIR/tmp/right_trimmed.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/right_trimmed.sam > $OUTPUTDIR/tmp/right_trimmed.bam; rm $OUTPUTDIR/tmp/right_trimmed.sam
-
-  @SAMTOOLS@ merge -@ 6 -n $OUTPUTDIR/tmp/left_merged.bam $OUTPUTDIR/tmp/left_mapped.bam $OUTPUTDIR/tmp/left_trimmed.bam
-  @SAMTOOLS@ merge -@ 6 -n $OUTPUTDIR/tmp/right_merged.bam $OUTPUTDIR/tmp/right_mapped.bam $OUTPUTDIR/tmp/right_trimmed.bam
+  @BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/left_reads.fq > $OUTPUTDIR/tmp/left_mapped.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/left_mapped.sam > $OUTPUTDIR/tmp/left_mapped.bam; rm $OUTPUTDIR/tmp/left_mapped.sam
+  @BOWTIE@ -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/right_reads.fq > $OUTPUTDIR/tmp/right_mapped.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/right_mapped.sam > $OUTPUTDIR/tmp/right_mapped.bam; rm $OUTPUTDIR/tmp/right_mapped.sam
   
   cd $OUTPUTDIR/tmp
-  @SAMTOOLS@ sort -@ 6 -n -Tleftdata left_merged.bam >left_kept.sorted.bam
-  @SAMTOOLS@ sort -@ 6 -n -Trightdata right_merged.bam > right_kept.sorted.bam
+  @SAMTOOLS@ sort -@ 6 -n -Tleftdata left_mapped.bam >left_kept.sorted.bam
+  @SAMTOOLS@ sort -@ 6 -n -Trightdata right_mapped.bam > right_kept.sorted.bam
   cd ../..
 
   ### run mode to check 
-  $BINDIR/mapped-reads-merge $OUTPUTDIR/tmp/left_kept.sorted.bam $OUTPUTDIR/tmp/right_kept.sorted.bam $OUTPUTDIR/mapped_reads.bam $OUTPUTDIR/logs/alignment-statistics.txt yes
+  $BINDIR/mapped-reads-merge $OUTPUTDIR/tmp/left_kept.sorted.bam $OUTPUTDIR/tmp/right_kept.sorted.bam $OUTPUTDIR/mapped_reads.bam $OUTPUTDIR/logs/alignment-statistics.txt
 
 
 }
