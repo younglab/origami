@@ -188,13 +188,13 @@ then
   
   if [ $MINDIST -gt 0 ];
   then
-    awk 'function abs(value) { return (value<0?-value:value); } { if($1!=$4 || $3==$5 || abs($5-$3) >= $MINDIST) print }' $OUTFILE > $CARRYFILE
+    awk 'function abs(value) { return (value<0?-value:value); } { if($1!=$4 || $3==$5 || abs($5-$3) >= '"$MINDIST"') print }' $OUTFILE > $CARRYFILE
     mv $CARRYFILE $OUTFILE
   fi
   
   if [ $MAXDIST -gt 0 ];
   then
-    awk 'function abs(value) { return (value<0?-value:value); } { if($1!=$4 || $3==$5 || abs($5-$3) <= $MAXDIST) print }' $OUTFILE > $CARRYFILE
+    awk 'function abs(value) { return (value<0?-value:value); } { if($1!=$4 || $3==$5 || abs($5-$3) <= '"$MAXDIST"') print }' $OUTFILE > $CARRYFILE
     mv $CARRYFILE $OUTFILE
   fi
   
@@ -214,6 +214,12 @@ echo "Estimating interaction belief..."
 if [ $ONLYMAP == "no" ];
 then
   Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL $USEDISTANCE $USEDF
+  
+  if [ $? -ne 0 ];
+  then
+    echo "Error in estimating belief probabilities"
+    exit 1
+  fi
 fi
 
 if [ $ASSIGNTOPEAKS != "no" ] && [ $ONLYMAP == "no" ]
