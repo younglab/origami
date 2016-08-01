@@ -19,8 +19,8 @@ dist:
 	gzip origami.tar
 
 install:
-	mkdir -p ${bindir}
-	cp bin/origami-alignment bin/origami-analysis bin/origami-conversion bin/origami-chip-profile bin/origami-merge-replicate-files ${bindir}
-	mkdir -p ${scriptdir}
-	cp -r scripts ${scriptdir}
+	mkdir ${prefix}
+	mkdir ${bindir}
+	cp bin/origami-alignment bin/origami-analysis bin/origami-conversion ${bindir}
+	cp -r scripts ${prefix}
 	cp src/mapped-reads-merge ${bindir}

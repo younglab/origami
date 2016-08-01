@@ -18,6 +18,9 @@ USEDISTANCE=yes
 ZSCOREFILTER=no
 ASSIGNTOPEAKS=no
 ONLYMAP=no
+MINDIST=0
+MAXDIST=0
+NOINTERCHROMOSOMAL=no
 USEDF=0
 
 helpmenu() {
@@ -40,11 +43,14 @@ helpmenu() {
   echo "  --use-df=[positive number]  Set effective degrees of freedom for the smooth spline calculation of distance"
   echo "  --only-map-pets   Only generate files for counting PETs at peaks and interactions, do not run the statistical modeling"
   echo "  --assign-to-peaks   Generates a secondary output where each end of an observed interaction fall on (one of) the original ChIP peak(s) [experimental]"
+  echo "  --min-dist=[positive integer]  Minimum intrachromsomal distance to consider (default consider all interactions)"
+  echo "  --max-dist=[positive integer]  Maximum intrachromsomal distance to consider (default consider all interactions)"
+  echo "  --no-interchromosomal  Do not consider any interchromsomal interactions"
 }
 
 
 
-TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter:,use-df:,assign-to-peaks,only-map-pets,join-nearby-peaks: -n 'origami' -- "$@"`
+TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter:,use-df:,assign-to-peaks,only-map-pets,join-nearby-peaks:,min-dist:,max-dist:,no-interchromosomal -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -100,6 +106,17 @@ while [ $# -ge 1 ]; do
 		--join-nearby-peaks)
 		  MERGEDIST="$2"
 		  shift
+		  ;;
+		--min-dist)
+		  MINDIST="$2"
+		  shift
+		  ;;
+		--max-dist)
+		  MAXDIST="$2"
+		  shift
+		  ;;
+		--no-interchromosomal)
+		  NOINTERCHROMOSOMAL=yes
 		  ;;
 	esac
 	shift
@@ -161,9 +178,33 @@ fi
 
 if [ ! -e "$PREFIX-raw-int-counts.txt" ];
 then
+  OUTFILE="$RANDOM.tmp.txt"
+  CARRYFILE="$RANDOM.tmp.txt"
   @BEDTOOLS@ pairtobed -bedpe -type both -abam $READSFILE -b $TMPFILE > $PREFIX-raw-interactions.out
 
-  $SCRIPTDIR/estimate-counts.pl $PREFIX-raw-interactions.out > $PREFIX-raw-int-counts.txt
+  $SCRIPTDIR/estimate-counts.pl $PREFIX-raw-interactions.out > $OUTFILE
+  
+  cp $OUTFILE "tmp.out" ### keep temporary for now for debugging purposes
+  
+  if [ $MINDIST -gt 0 ];
+  then
+    awk 'function abs(value) { return (value<0?-value:value); } { if($1!=$4 || $3==$5 || abs($5-$3) >= '"$MINDIST"') print }' $OUTFILE > $CARRYFILE
+    mv $CARRYFILE $OUTFILE
+  fi
+  
+  if [ $MAXDIST -gt 0 ];
+  then
+    awk 'function abs(value) { return (value<0?-value:value); } { if($1!=$4 || $3==$5 || abs($5-$3) <= '"$MAXDIST"') print }' $OUTFILE > $CARRYFILE
+    mv $CARRYFILE $OUTFILE
+  fi
+  
+  if [ $NOINTERCHROMOSOMAL == "yes" ];
+  then
+    awk '{ if($1==$4) print }' $OUTFILE > $CARRYFILE
+    mv $CARRYFILE $OUTFILE
+  fi
+  
+  mv $OUTFILE $PREFIX-raw-int-counts.txt 
 fi
 
 rm $TMPFILE 
@@ -173,6 +214,12 @@ echo "Estimating interaction belief..."
 if [ $ONLYMAP == "no" ];
 then
   Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL $USEDISTANCE $USEDF
+  
+  if [ $? -ne 0 ];
+  then
+    echo "Error in estimating belief probabilities"
+    exit 1
+  fi
 fi
 
 if [ $ASSIGNTOPEAKS != "no" ] && [ $ONLYMAP == "no" ]
