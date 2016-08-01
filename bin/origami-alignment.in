@@ -26,6 +26,7 @@ PREPROCESSINGCMD=cat
 MINREADLENGTH=15
 MACSGSIZE=hs
 CALLBROADPEAK=no
+USEMACS1=no
 
 ## other variables
 ORIGINALCMD="$0 $@"
@@ -80,11 +81,12 @@ helpmenu() {
   echo "  --a-linker=   Set the A-linker sequence (default, CTGCTGTCCG, implies --ab-linker)"
   echo "  --b-linker=   Set the B-linker sequence (default, CTGCTGTCAT, implies --ab-linker)"
   echo "  --pp=         Run pre-preprocessing command on reads before linker trimming (must be executable, default none)"
-  echo "  --macs-gsize=     Set genome size for macs2 peak calling (default=hs)"
-  echo "  --callbroadpeak   Calls broad peak via macs2 and generates merged file (for factors that have narrow and broad binding)"
+  echo "  --macs-gsize=     Set genome size for MACS peak calling (default=hs, same for macs2 or macs)"
+  echo "  --macs2-callbroadpeak   Calls broad peak via macs2 and generates merged file (for factors that have narrow and broad binding)"
+  echo "  --use-macs1    Run peak calling with macs 1"
 }
 
-TEMP=`getopt -o o:hvapm: -l output:,noskip,splitnum:,keep-tmp,lsf-queue:,forward-linker:,reverse-linker:,ab-linker,a-linker:,b-linker:,pp:,min-len:,macs-gsize:,with-ab-reverse,a-rev-linker:,b-rev-linker:,callbroadpeak -n 'origami' -- "$@"`
+TEMP=`getopt -o o:hvapm: -l output:,noskip,splitnum:,keep-tmp,lsf-queue:,forward-linker:,reverse-linker:,ab-linker,a-linker:,b-linker:,pp:,min-len:,macs-gsize:,with-ab-reverse,a-rev-linker:,b-rev-linker:,macs2-callbroadpeak,use-macs1 -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -167,8 +169,11 @@ while [ $# -ge 1 ]; do
 	    MACSGSIZE="$2"
 	    shift
 	    ;;
-	  --callbroadpeak)
+	  --macs2-callbroadpeak)
 	   CALLBROADPEAK=yes
+	   ;;
+	  --use-macs)
+	   USEMACS1=yes
 	   ;;
 	esac
 	shift
@@ -481,14 +486,21 @@ wait #finish all remaining processes
 
 echo "Calling peaks"
 
-@MACS2@ callpeak -t $OUTPUTDIR/mapped_reads.bam -n peaks -g $MACSGSIZE --nomodel --extsize 100 --outdir $OUTPUTDIR
-
-if [ $CALLBROADPEAK == "yes" ]
+if [ $USEMACS1 == "yes" ];
 then
-  @MACS2@ callpeak -t $OUTPUTDIR/mapped_reads.bam --broad -n peaks -g $MACSGSIZE --nomodel --extsize 100 --outdir $OUTPUTDIR
+  cd $OUTPUTDIR
+  macs -t mapped_reads.bam -n peaks -g $MACSGSIZE -f BAM --nomodel --shiftsize 100 
+  cd ..
+else
+  @MACS2@ callpeak -t $OUTPUTDIR/mapped_reads.bam -n peaks -g $MACSGSIZE --nomodel --extsize 100 --outdir $OUTPUTDIR
+
+  if [ $CALLBROADPEAK == "yes" ]
+  then
+    @MACS2@ callpeak -t $OUTPUTDIR/mapped_reads.bam --broad -n peaks -g $MACSGSIZE --nomodel --extsize 100 --outdir $OUTPUTDIR
   
-  cut -f 1-6 $OUTPUTDIR/peaks_peaks.narrowPeak > $OUTPUTDIR/peaks_merged.bed
-  cut -f 1-6 $OUTPUTDIR/peaks_peaks.broadPeak >> $OUTPUTDIR/peaks_merged.bed
+    cut -f 1-6 $OUTPUTDIR/peaks_peaks.narrowPeak > $OUTPUTDIR/peaks_merged.bed
+    cut -f 1-6 $OUTPUTDIR/peaks_peaks.broadPeak >> $OUTPUTDIR/peaks_merged.bed
+  fi
 fi
 
 if [[ "$KEEPTMP" == "no" ]];
