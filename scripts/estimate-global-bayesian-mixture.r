@@ -21,9 +21,10 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
   intdist <- distance(g1,g2)
   interchromosomal <- is.na(intdist)
   minintdist <- min(intdist[!interchromosomal])
-  #if(any(is.na(intdist))) {
-  #  intdist[is.na(intdist)] <- max(intdist,na.rm=T)
-  #}
+  
+  pp1avg <- rep(0,S)
+  pp1avgN <- 0
+
   
   if(is.null(pruning) || pruning < 1) {
     pruning <- N+1 # will never prune
@@ -86,7 +87,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
   
   totcounts <- sum(counts)
   
-  lambdad1 <- lamdbad0 <- rep(0,length(counts))
+  lambdad1 <- lambdad0 <- rep(0,length(counts))
   
   
   if(show.progress) pb <- txtProgressBar()
@@ -98,7 +99,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     lambda0 <- ret$lambda0[i]
     lambda1 <- ret$lambda1[i]
     g1 <- pp*dpois(counts,lambda1 + lambdad1)
-    g2 <- (1-pp) * dpois(counts,lambda0 + lamdbad0)
+    g2 <- (1-pp) * dpois(counts,lambda0 + lambdad0)
     
     vp <- g1/rowSums(cbind(g1,g2)) 
     
@@ -120,6 +121,8 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       ret$p1[[i+1]] <- pp
     } else if(mini.model && i > burnin && ((i-burnin) %% pruning) != 0 ) {
       zm <- zm + vz
+      pp1avg <- (pp1avg*pp1avgN+pp)/(pp1avgN+1)
+      pp1avgN <- pp1avgN+1
     }
     
     b <- vz == 0 & !suppress
@@ -186,7 +189,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     }
   } 
   ret <- c(ret,list(sdepth=sdepth,msdepth=msdepth,intdist=intdist))
-  if(mini.model) ret <- c(ret,list(zm=zm,lambdad1=lambdad1,lamdbad0=lamdbad0))
+  if(mini.model) ret <- c(ret,list(zm=zm,lambdad1=lambdad1,lambdad0=lambdad0,pp1avg=pp1avg))
   
   ret
 }
