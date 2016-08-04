@@ -24,6 +24,9 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
   
   pp1avg <- rep(0,S)
   pp1avgN <- 0
+  
+  proposal.var <- 10
+  dbeta1.acs <- dbeta0.acs <- 0
 
   
   if(is.null(pruning) || pruning < 1) {
@@ -74,13 +77,17 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       mp = vector("list",N),
       lambda0 = c(lambda0.init,rep(NA_real_,N)),
       lambda1 = c(lambda1.init,rep(NA_real_,N)),
+      dbeta0 = rep(NA_real_,N),
+      dbeta1 = rep(NA_real_,N),
       lambdad1 = vector("list",N),
       lambdad0 = vector("list",N)
     )
   } else {
     ret <- list(
       lambda0 = c(lambda0.init,rep(NA_real_,N)),
-      lambda1 = c(lambda1.init,rep(NA_real_,N))
+      lambda1 = c(lambda1.init,rep(NA_real_,N)),
+      dbeta0 = rep(0,NA_real_,N),
+      dbeta1 = rep(0,NA_real_,N)
     )
     zm <- rep(0,length(counts))
   }
@@ -146,18 +153,43 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     ret$lambda1[i+1] <- l1
     
     if(with.distance.weight) {
+      dbeta1 <- ret$dbeta1[i]
+      dbeta0 <- ret$dbeta0[i]
+      
       x <- log10(intdist[vz==1 & !interchromosomal]+1)
       
-      s1 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
+      pc <- pmax(counts[vz==1&!is.na(intdist)-l1],0)
+      
+      dbeta1.p <- rnorm(1,beta,var(log(pc+.5)*(x*t(x))^-1))
+      
+      lhr <- sum(dpois(pc,exp(dbeta1.p*x),log = T)) - sum(dpois(pc,exp(dbeta1*x),log=T)) + sum(dnorm(dbeta1.p,0,10,log=T)) - sum(dnorm(dbeta1,0,10,log=T))
+      
+      if(log(runif(1))<lhr) { dbeta1 <- dbeta1.p; dbeta1.acs <- dbeta1.acs+1 }
+      
+      #s1 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
       x <- log10(intdist[vz==0 & !interchromosomal]+1)
       
-      s0 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0),df=usedf) else smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0))
+      pc <- pmax(counts[vz==0&!is.na(intdist)-l0],0)
+      
+      dbeta0.p <- rnorm(1,beta,var(log(pc+.5)*(x*t(x))^-1))
+      
+      lhr <- sum(dpois(pc,exp(dbeta0.p*x),log = T)) - sum(dpois(pc,exp(dbeta0*x),log=T)) + sum(dnorm(dbeta0.p,0,10,log=T)) - sum(dnorm(dbeta0,0,10,log=T))
+      
+      if(log(runif(1))<lhr) { dbeta0 <- dbeta0.p; dbeta0.acs <- dbeta0.acs+1 }
+      
+      ret$dbeta1[i+1] <- dbeta1
+      ret$dbeta0[i+1] <- dbeta0
+      
+      #s0 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0),df=usedf) else smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0))
       
       x <- log10(intdist+1)
       if(any(interchromosomal)) x[interchromosomal] <- log10(minintdist+1) ## set eact interchromsomal interaction to shortest distance (which should have the highest mean read count)
       
-      lambdad1 <- pmax(predict(s1,x)$y,0) ### floor the value at 0
-      lambdad0 <- pmax(predict(s0,x)$y,0) 
+      #lambdad1 <- pmax(predict(s1,x)$y,0) ### floor the value at 0
+      #lambdad0 <- pmax(predict(s0,x)$y,0) 
+      
+      lambdad1 <- rpois(length(x),exp(dbeta1*x))
+      lambdad0 <- rpois(length(x),exp(dbeta0*x))
       
       if( !mini.model) {
         ret$lambdad1[[i]] <- lambdad1
@@ -188,7 +220,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       ret <- lapply(ret,function(l) l[-idx])
     }
   } 
-  ret <- c(ret,list(sdepth=sdepth,msdepth=msdepth,intdist=intdist))
+  ret <- c(ret,list(sdepth=sdepth,msdepth=msdepth,intdist=intdist,dbeta1.acs=dbeta1.acs,dbeta0.acs=dbeta0.acs))
   if(mini.model) ret <- c(ret,list(zm=zm,lambdad1=lambdad1,lambdad0=lambdad0,pp1avg=pp1avg))
   
   ret
