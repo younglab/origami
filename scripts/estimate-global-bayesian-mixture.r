@@ -159,7 +159,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       x <- log10(intdist[vz==1 & !interchromosomal]+1)
       idx <- sample.int(length(x),min(1000,length(x)))
       
-      pc <- floor(pmax(counts[vz==1&!is.na(intdist)]-l1,0))
+      pc <- floor(pmax(counts[vz==1&!is.na(intdist)],0))
       
       dbeta1.p <- rnorm(1,dbeta1,sd(log(pc[idx]+.5)))#*((x*t(x))^-1)[idx])
       #print(head(pc))
@@ -168,26 +168,29 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       #print(head(t(var(log(pc+.5))*(x*t(x))^-1),100))
       #cat(paste("dbeta1s",dbeta1,dbeta1.p),sep='\n')
       
-      lhr <- sum(dpois(pc,exp(dbeta1.p*x),log = T)) - sum(dpois(pc,exp(dbeta1*x),log=T)) + sum(dnorm(dbeta1.p,5,5,log=T)) - sum(dnorm(dbeta1,5,5,log=T))
+      lhr <- sum(dpois(pc,exp(dbeta1.p*x),log = T)) - sum(dpois(pc,exp(dbeta1*x),log=T)) + 
+        sum(dnorm(dbeta1.p,0,10,log=T)) - sum(dnorm(dbeta1,0,10,log=T))
       #print(head(cbind(pc,x,dpois(pc,exp(dbeta1.p*x),log = T),1000)))
       #print(head(cbind(pc,x,dpois(pc,exp(dbeta1*x),log=T),1000)))
       #print(lhr)
       if(log(runif(1))<lhr) { dbeta1 <- dbeta1.p; dbeta1.acs <- dbeta1.acs+1 }
-      cat(paste("dbeta0s",dbeta0,dbeta0.p,lhr),sep='\n')
+      cat(paste("dbeta1s",dbeta1,dbeta1.p,lhr),sep='\n')
       
       #s1 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
       x <- log10(intdist[vz==0 & !interchromosomal]+1)
       idx <- sample.int(length(x),min(1000,length(x)))
       
       
-      pc <- floor(pmax(counts[vz==0&!is.na(intdist)]-l0,0))
+      pc <- floor(pmax(counts[vz==0&!is.na(intdist)],0))
       
       dbeta0.p <- rnorm(1,dbeta0,sd(log(pc[idx]+.5)))#*((x*t(x))^-1)[idx])
 
       
-      lhr <- sum(dpois(pc,exp(dbeta0.p*x),log = T)) - sum(dpois(pc,exp(dbeta0*x),log=T)) + sum(dnorm(dbeta0.p,0,5,log=T)) - sum(dnorm(dbeta0,0,5,log=T))
+      lhr <- sum(dpois(pc,exp(dbeta0.p*x),log = T)) - sum(dpois(pc,exp(dbeta0*x),log=T)) + 
+        sum(dnorm(dbeta0.p,0,10,log=T)) - sum(dnorm(dbeta0,0,10,log=T))
       
       if(log(runif(1))<lhr) { dbeta0 <- dbeta0.p; dbeta0.acs <- dbeta0.acs+1 }
+      cat(paste("dbeta0s",dbeta0,dbeta0.p,lhr),sep='\n')
       
       ret$dbeta1[i+1] <- dbeta1
       ret$dbeta0[i+1] <- dbeta0
@@ -203,8 +206,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       lambdad1 <- rpois(length(x),exp(dbeta1*x))
       lambdad0 <- rpois(length(x),exp(dbeta0*x))
       
-      cat(paste("dbeta1s",dbeta1,dbeta1.p,lhr),sep='\n')
-      
+
       
       if( !mini.model) {
         ret$lambdad1[[i]] <- lambdad1
