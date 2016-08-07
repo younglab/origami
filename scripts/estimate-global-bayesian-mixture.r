@@ -168,7 +168,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       
       #print(dbeta1)
       #print(sd(log(pc[idx]+.5)) *solve(t(x)%*%x))
-      dbeta1.p <- t(rmvnorm(1,dbeta1,sd(log(pc+.1)) *solve(t(x)%*%x)))#*((x*t(x))^-1)[idx])
+      dbeta1.p <- t(rmvnorm(1,dbeta1,var(log(pc+.1)) *solve(t(x)%*%x)))#*((x*t(x))^-1)[idx])
       #print(head(pc))
       #print(head(x))
       #print(head(t((x*t(x))^-1)))
@@ -183,7 +183,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       #print(head(cbind(pc,x,dpois(pc,exp(dbeta1*x),log=T),1000)))
       #print(lhr)
       if(log(runif(1))<lhr) { dbeta1 <- dbeta1.p; dbeta1.acs <- dbeta1.acs+1 }
-      cat(paste("dbeta1s",dbeta1,dbeta1.p,lhr),sep='\n')
+      #cat(paste("dbeta1s",dbeta1,dbeta1.p,lhr),sep='\n')
       
       #s1 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
       d <- log10(intdist[vz==0 & !interchromosomal]+1)
@@ -194,7 +194,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       
       pc <- floor(pmax(counts[vz==0&!is.na(intdist)],0))
       
-      dbeta0.p <- t(rmvnorm(1,dbeta0,sd(log(pc+.1)) *solve(t(x)%*%x)))
+      dbeta0.p <- t(rmvnorm(1,dbeta0,var(log(pc+.1)) *solve(t(x)%*%x)))
       #print(dbeta0)
       #print(dbeta0.p)
       
@@ -204,7 +204,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
         sum(dnorm(dbeta0.p,rep(0,length(dbeta0)),rep(10,length(dbeta0)),log=T)) - sum(dnorm(dbeta0,rep(0,length(dbeta0)),rep(10,length(dbeta0)),log=T))
       
       if(log(runif(1))<lhr) { dbeta0 <- dbeta0.p; dbeta0.acs <- dbeta0.acs+1 }
-      cat(paste("dbeta0s",dbeta0,dbeta0.p,lhr),sep='\n')
+      #cat(paste("dbeta0s",dbeta0,dbeta0.p,lhr),sep='\n')
       
       ret$dbeta1[[i+1]] <- dbeta1
       ret$dbeta0[[i+1]] <- dbeta0
