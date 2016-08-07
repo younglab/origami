@@ -161,14 +161,14 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       dbeta0 <- ret$dbeta0[[i]]
       
       d <- log10(intdist[vz==1 & !interchromosomal]+1)
-      idx <- sample.int(length(d),min(1000,length(d)))
+      #idx <- sample.int(length(d),min(1000,length(d)))
       x <- cbind(rep(1,length(d)),d,d^2)
       
       pc <- floor(pmax(counts[vz==1&!is.na(intdist)],0))
       
       #print(dbeta1)
       #print(sd(log(pc[idx]+.5)) *solve(t(x)%*%x))
-      dbeta1.p <- t(rmvnorm(1,dbeta1,sd(log(pc[idx]+.5)) *solve(t(x)%*%x)))#*((x*t(x))^-1)[idx])
+      dbeta1.p <- t(rmvnorm(1,dbeta1,sd(log(pc+.1)) *solve(t(x)%*%x)))#*((x*t(x))^-1)[idx])
       #print(head(pc))
       #print(head(x))
       #print(head(t((x*t(x))^-1)))
@@ -187,14 +187,14 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       
       #s1 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
       d <- log10(intdist[vz==0 & !interchromosomal]+1)
-      idx <- sample.int(length(d),min(1000,length(d)))
+      #idx <- sample.int(length(d),min(1000,length(d)))
       x <- cbind(rep(1,length(d)),d,d^2)
       
       
       
       pc <- floor(pmax(counts[vz==0&!is.na(intdist)],0))
       
-      dbeta0.p <- t(rmvnorm(1,dbeta0,sd(log(pc[idx]+.5)) *solve(t(x)%*%x)))
+      dbeta0.p <- t(rmvnorm(1,dbeta0,sd(log(pc+.1)) *solve(t(x)%*%x)))
       #print(dbeta0)
       #print(dbeta0.p)
       
