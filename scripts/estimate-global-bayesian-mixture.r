@@ -30,7 +30,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
   proposal.var <- 10
   dbeta1.acs <- dbeta0.acs <- 0
   
-  initial.beta <- list(matrix(c(0,0),ncol=1))
+  initial.beta <- list(matrix(c(0,0,0),ncol=1))
 
   
   if(is.null(pruning) || pruning < 1) {
@@ -162,7 +162,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       
       d <- log10(intdist[vz==1 & !interchromosomal]+1)
       idx <- sample.int(length(d),min(1000,length(d)))
-      x <- cbind(rep(1,length(d)),d)
+      x <- cbind(rep(1,length(d)),d,d^2)
       
       pc <- floor(pmax(counts[vz==1&!is.na(intdist)],0))
       
@@ -188,7 +188,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       #s1 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
       d <- log10(intdist[vz==0 & !interchromosomal]+1)
       idx <- sample.int(length(d),min(1000,length(d)))
-      x <- cbind(rep(1,length(d)),d)
+      x <- cbind(rep(1,length(d)),d,d^2)
       
       
       
@@ -213,7 +213,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       
       d <- log10(intdist+1)
       if(any(interchromosomal)) d[interchromosomal] <- log10(minintdist+1) ## set eact interchromsomal interaction to shortest distance (which should have the highest mean read count)
-      x <- cbind(rep(1,length(intdist)),d)
+      x <- cbind(rep(1,length(intdist)),d,d^2)
       
       #lambdad1 <- pmax(predict(s1,x)$y,0) ### floor the value at 0
       #lambdad0 <- pmax(predict(s0,x)$y,0) 
