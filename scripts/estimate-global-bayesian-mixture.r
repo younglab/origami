@@ -140,7 +140,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     r0 <- sum(counts[b])
     n <- sum(b)
 
-    l0 <- rgamma(1,r0,n)
+    l0 <- rgamma(1,r0+1,n+1)
     
     l1 <- l0
     
@@ -150,7 +150,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     
     
     
-    l1x <- rgamma(1,r1,n)
+    l1x <- rgamma(1,r1+1,n+1)
     l1 <- max(l1,l1x)
     
     ret$lambda0[i+1] <- l0
@@ -165,26 +165,15 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       x <- cbind(rep(1,length(d)),d,d^2)
       
       pc <- floor(pmax(counts[vz==1&!is.na(intdist)],0))
-      
-      #print(dbeta1)
-      #print(sd(log(pc[idx]+.5)) *solve(t(x)%*%x))
-      dbeta1.p <- t(rmvnorm(1,dbeta1,var(log(pc+.1)) *solve(t(x)%*%x)))#*((x*t(x))^-1)[idx])
-      #print(head(pc))
-      #print(head(x))
-      #print(head(t((x*t(x))^-1)))
-      #print(head(t(var(log(pc+.5))*(x*t(x))^-1),100))
-      #cat(paste("dbeta1s",dbeta1,dbeta1.p),sep='\n')
-      #print(dbeta1)
-      #print(dbeta1.p)
+
+      dbeta1.p <- t(rmvnorm(1,dbeta1,var(log(pc+.1)) *solve(t(x)%*%x)))
+
       
       lhr <- sum(dpois(pc,exp(x%*%dbeta1.p),log = T)) - sum(dpois(pc,exp(x%*%dbeta1),log=T)) + 
         sum(dnorm(dbeta1.p,rep(0,length(dbeta1)),rep(10,length(dbeta1)),log=T)) - sum(dnorm(dbeta1,rep(0,length(dbeta1)),rep(10,length(dbeta1)),log=T))
-      #print(head(cbind(pc,x,dpois(pc,exp(dbeta1.p*x),log = T),1000)))
-      #print(head(cbind(pc,x,dpois(pc,exp(dbeta1*x),log=T),1000)))
-      #print(lhr)
+
       if(log(runif(1))<lhr) { dbeta1 <- dbeta1.p; dbeta1.acs <- dbeta1.acs+1 }
-      #cat(paste("dbeta1s",dbeta1,dbeta1.p,lhr),sep='\n')
-      
+
       #s1 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
       d <- log10(intdist[vz==0 & !interchromosomal]+1)
       #idx <- sample.int(length(d),min(1000,length(d)))
