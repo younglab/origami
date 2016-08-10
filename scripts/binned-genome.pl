@@ -56,7 +56,7 @@ while(<F>) {
   
   my ($chr,$s,$e,$c) = split /\t/;
   
-  print "$chr\t$s\t$e\n" unless $c < $minreads;
+  print O "$chr\t$s\t$e\n" unless $c < $minreads;
 }
 
 close(O);
