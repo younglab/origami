@@ -207,8 +207,10 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       #lambdad1 <- pmax(predict(s1,x)$y,0) ### floor the value at 0
       #lambdad0 <- pmax(predict(s0,x)$y,0) 
       
-      lambdad1 <- rpois(length(x),exp(x %*% dbeta1))
-      lambdad0 <- rpois(length(x),exp(x %*% dbeta0))
+      #lambdad1 <- rpois(length(x),exp(x %*% dbeta1))
+      #lambdad0 <- rpois(length(x),exp(x %*% dbeta0))
+      lambdad1 <- exp(x%*%dbeta1)
+      lambdad0 <- exp(x%*%dbeta0)
       
 
       
