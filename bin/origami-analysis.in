@@ -184,8 +184,7 @@ then
 
   $SCRIPTDIR/estimate-counts.pl $PREFIX-raw-interactions.out > $OUTFILE
   
-  cp $OUTFILE "tmp.out" ### keep temporary for now for debugging purposes
-  
+
   if [ $MINDIST -gt 0 ];
   then
     awk 'function abs(value) { return (value<0?-value:value); } { if($1!=$4 || $3==$5 || abs($5-$3) >= '"$MINDIST"') print }' $OUTFILE > $CARRYFILE
