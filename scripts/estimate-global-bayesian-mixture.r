@@ -174,7 +174,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
 
         if(log(runif(1))<lhr) { dbeta1 <- dbeta1.p; dbeta1.acs <- dbeta1.acs+1 }
       } else {
-        s1 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
+        s1 <- if( usedf > 0 ) smooth.spline(d,pmax(counts[vz==1& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(d,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
       }
 
       d <- log10(intdist[vz==0 & !interchromosomal]+1)
@@ -190,7 +190,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       
         if(log(runif(1))<lhr) { dbeta0 <- dbeta0.p; dbeta0.acs <- dbeta0.acs+1 }
       } else {
-        s0 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0),df=usedf) else smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0))
+        s0 <- if( usedf > 0 ) smooth.spline(d,pmax(counts[vz==0& !is.na(intdist)]-l0,0),df=usedf) else smooth.spline(d,pmax(counts[vz==0& !is.na(intdist)]-l0,0))
       }
       
       if( useglm) {  
@@ -208,8 +208,8 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
         lambdad1 <- exp(x%*%dbeta1)
         lambdad0 <- exp(x%*%dbeta0)
       } else {
-        lambdad1 <- pmax(predict(s1,x)$y,0) ### floor the value at 0
-        lambdad0 <- pmax(predict(s0,x)$y,0) 
+        lambdad1 <- pmax(predict(s1,d)$y,0) ### floor the value at 0
+        lambdad0 <- pmax(predict(s0,d)$y,0) 
       }
 
 
