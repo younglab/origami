@@ -1,13 +1,15 @@
 library(GenomicRanges,quietly = !interactive())
 library(utils,quietly = !interactive())
 library(matrixStats,quietly = !interactive())
+library(MASS)
+library(mvtnorm)
 
 calc.zscore <- function(v) (v-mean(v))/sd(v)
 
 estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=100,pruning=NULL,
                                                         with.distance.weight=F,multiply=T,show.progress=F,
                                                         lambda0.init=1,lambda1.init=5,suppress.counts.higher.than=30,
-                                                        mini.model=T,usedf=0) {
+                                                        mini.model=T,usedf=0,useglm=F) {
   S <- nrow(ints)
   
   d <- GRanges(seqnames=as.character(depth$V1),ranges=IRanges(depth$V2,depth$V3),strand='*')
@@ -24,6 +26,11 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
   
   pp1avg <- d1avg <- d0avg <- rep(0,S)
   pp1avgN <- d1avgN <- d0avgN <-  0
+  
+  proposal.var <- 10
+  dbeta1.acs <- dbeta0.acs <- 0
+  
+  initial.beta <- list(matrix(c(0,0,0),ncol=1))
 
   
   if(is.null(pruning) || pruning < 1) {
@@ -44,10 +51,6 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
   m1 <- match(f1,rownames(inttable))
   m2 <- match(f2,rownames(inttable))
   
-  # frequency of interactions not including the present one
-  #nint <- rowMeans(cbind(totint[m1]-1,totint[m2]-1)) # since each interaction counts itself in the table in the parent script
-  
-  #pint <- apply(cbind(inttable[m1],inttable[m2],counts),1,function(r) { idx <- as.integer(colnames(inttable))<r[3]; sum(r[1:2])}
   countm <- t(mapply(function(x1,x2,n) {
     idx <- as.integer(colnames(inttable))<n
     
@@ -74,13 +77,17 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       mp = vector("list",N),
       lambda0 = c(lambda0.init,rep(NA_real_,N)),
       lambda1 = c(lambda1.init,rep(NA_real_,N)),
+      dbeta0 = c(initial.beta,vector("list",N)),
+      dbeta1 = c(initial.beta,vector("list",N)),
       lambdad1 = vector("list",N),
       lambdad0 = vector("list",N)
     )
   } else {
     ret <- list(
       lambda0 = c(lambda0.init,rep(NA_real_,N)),
-      lambda1 = c(lambda1.init,rep(NA_real_,N))
+      lambda1 = c(lambda1.init,rep(NA_real_,N)),
+      dbeta0 = c(initial.beta,vector("list",N)),
+      dbeta1 = c(initial.beta,vector("list",N))
     )
     zm <- rep(0,length(counts))
   }
@@ -135,7 +142,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     r0 <- sum(counts[b])
     n <- sum(b)
 
-    l0 <- rgamma(1,r0,n)
+    l0 <- rgamma(1,r0+1,n+1)
     
     l1 <- l0
     
@@ -145,25 +152,69 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     
     
     
-    l1x <- rgamma(1,r1,n)
+    l1x <- rgamma(1,r1+1,n+1)
     l1 <- max(l1,l1x)
     
     ret$lambda0[i+1] <- l0
     ret$lambda1[i+1] <- l1
     
     if(with.distance.weight) {
-      x <- log10(intdist[vz==1 & !interchromosomal]+1)
+      dbeta1 <- ret$dbeta1[[i]]
+      dbeta0 <- ret$dbeta0[[i]]
       
-      s1 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
-      x <- log10(intdist[vz==0 & !interchromosomal]+1)
+      d <- log10(intdist[vz==1 & !interchromosomal]+1)
+      if( useglm) {
+        x <- cbind(rep(1,length(d)),d,d^2)
       
-      s0 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0),df=usedf) else smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0))
+        pc <- floor(pmax(counts[vz==1&!is.na(intdist)],0))
+
+        dbeta1.p <- t(rmvnorm(1,dbeta1,var(log(pc+.1)) *solve(t(x)%*%x)))
+
       
-      x <- log10(intdist+1)
-      if(any(interchromosomal)) x[interchromosomal] <- log10(minintdist+1) ## set eact interchromsomal interaction to shortest distance (which should have the highest mean read count)
+        lhr <- sum(dpois(pc,exp(x%*%dbeta1.p),log = T)) - sum(dpois(pc,exp(x%*%dbeta1),log=T)) + 
+          sum(dnorm(dbeta1.p,rep(0,length(dbeta1)),rep(10,length(dbeta1)),log=T)) - sum(dnorm(dbeta1,rep(0,length(dbeta1)),rep(10,length(dbeta1)),log=T))
+
+        if(log(runif(1))<lhr) { dbeta1 <- dbeta1.p; dbeta1.acs <- dbeta1.acs+1 }
+      } else {
+        s1 <- if( usedf > 0 ) smooth.spline(d,pmax(counts[vz==1& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(d,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
+      }
+
+      d <- log10(intdist[vz==0 & !interchromosomal]+1)
+      if( useglm ) { 
+        x <- cbind(rep(1,length(d)),d,d^2)
       
-      lambdad1 <- pmax(predict(s1,x)$y,0) ### floor the value at 0
-      lambdad0 <- pmax(predict(s0,x)$y,0) 
+        pc <- floor(pmax(counts[vz==0&!is.na(intdist)],0))
+      
+        dbeta0.p <- t(rmvnorm(1,dbeta0,var(log(pc+.1)) *solve(t(x)%*%x)))
+      
+        lhr <- sum(dpois(pc,exp(x%*%dbeta0.p),log = T)) - sum(dpois(pc,exp(x%*%dbeta0),log=T)) + 
+          sum(dnorm(dbeta0.p,rep(0,length(dbeta0)),rep(10,length(dbeta0)),log=T)) - sum(dnorm(dbeta0,rep(0,length(dbeta0)),rep(10,length(dbeta0)),log=T))
+      
+        if(log(runif(1))<lhr) { dbeta0 <- dbeta0.p; dbeta0.acs <- dbeta0.acs+1 }
+      } else {
+        s0 <- if( usedf > 0 ) smooth.spline(d,pmax(counts[vz==0& !is.na(intdist)]-l0,0),df=usedf) else smooth.spline(d,pmax(counts[vz==0& !is.na(intdist)]-l0,0))
+      }
+      
+      if( useglm) {  
+        ret$dbeta1[[i+1]] <- dbeta1
+        ret$dbeta0[[i+1]] <- dbeta0
+      }
+      
+      
+      d <- log10(intdist+1)
+      if(any(interchromosomal)) d[interchromosomal] <- log10(minintdist+1) ## set eact interchromsomal interaction to shortest distance (which should have the highest mean read count)
+      
+      if(useglm) { 
+        x <- cbind(rep(1,length(intdist)),d,d^2)
+        
+        lambdad1 <- exp(x%*%dbeta1)
+        lambdad0 <- exp(x%*%dbeta0)
+      } else {
+        lambdad1 <- pmax(predict(s1,d)$y,0) ### floor the value at 0
+        lambdad0 <- pmax(predict(s0,d)$y,0) 
+      }
+
+
       
       if( !mini.model) {
         ret$lambdad1[[i]] <- lambdad1
@@ -194,192 +245,11 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       ret <- lapply(ret,function(l) l[-idx])
     }
   } 
-  ret <- c(ret,list(sdepth=sdepth,msdepth=msdepth,intdist=intdist))
+
+  ret <- c(ret,list(sdepth=sdepth,msdepth=msdepth,intdist=intdist,dbeta1.acs=dbeta1.acs,dbeta0.acs=dbeta0.acs,useglm=useglm))
   if(mini.model) ret <- c(ret,list(zm=zm,lambdad1=lambdad1,lambdad0=lambdad0,pp1avg=pp1avg,d1avg=d1avg,d0avg=d0avg))
-  
+
   ret
-}
-
-
-estimate.global.bayesian.weighed.depth.mixture <- function(ints,depth,N=1100,burnin=100,pruning=NULL,with.distance.weight=F,multiply=T,show.progress=F,
-                                             lambda0.init=1,lambda1.init=5) {
-  S <- nrow(ints)
-  
-  d <- GRanges(seqnames=as.character(depth$V1),ranges=IRanges(depth$V2,depth$V3),strand='*')
-  g1 <- GRanges(seqnames=as.character(ints$V1),ranges=IRanges(ints$V2,ints$V3),strand='*')
-  g2 <- GRanges(seqnames=as.character(ints$V4),ranges=IRanges(ints$V5,ints$V6),strand='*')
-  
-  m1 <- match(g1,d)
-  m2 <- match(g2,d)
-  counts <- ints[,7]
-  d <- depth[,4]
-  
-  if(!multiply) {
-    sdepth <- rowSums(cbind(d[m1],d[m2]))
-    msdepth <- median(sdepth)
-  } else {
-    sdepth <- rowProds(cbind(d[m1],d[m2]))
-    msdepth <- median(sdepth)
-  }
-  
-  #print(c(msdepth,range(sdepth)))
-  
-  pp <- rep(.5,S)
-  
-  ret <- list(z=vector("list",N),
-              p1=c(list(pp),vector("list",N)),
-              mp=vector("list",N),
-              lambda0=c(lambda0.init,rep(NA_real_,N)),
-              lambda1=c(lambda1.init,rep(NA_real_,N)))
-
-  
-  totcounts <- sum(counts)
-
-  
-  if(show.progress) pb <- txtProgressBar()
-  
-  for( i in 1:N ) {
-    lambda0 <- ret$lambda0[i]
-    lambda1 <- ret$lambda1[i]
-    g1 <- pp*dpois(counts,lambda1)
-    g2 <- (1-pp) * dpois(counts,lambda0)
-    
-    vp <- g1/rowSums(cbind(g1,g2)) 
-
-    if(any(is.na(vp))) {
-      b<- is.na(vp)
-      vp[b] <- ifelse(counts[b]>=lambda1,.999,.001)
-    }
-    
-    vz <- rbinom(S,1,vp)
-
-    pp <- rbeta(S,sdepth/msdepth+vz,1+(1-vz)) #msdepth/msdepth=1
-    
-    
-    ret$z[[i]] <- vz
-    ret$mp[[i]] <- vp
-    ret$p1[[i+1]] <- pp
-    
-    r <- sum(counts[vz==0])
-    n <- sum(vz==0)
-    
-    l0 <- rgamma(1,r,n)
-
-
-    l1 <- rgamma(1,totcounts-r,S-n)#sum(vz==1))
-    l1 <- max(l0,l1) # cap the lower bound of l1 so we don't have to reshuffle group IDs
-    
-    ret$lambda0[i+1] <- l0
-    ret$lambda1[i+1] <- l1
-
-    #print(c(l0,l1))
-    if(show.progress) setTxtProgressBar(pb,i/N)
-  }
-  
-  if(show.progress) close(pb)
-  if(!is.null(burnin) && is.numeric(burnin) && burnin > 0 && burnin < N) {
-    bn <- lapply(ret,function(l) l[1:burnin])
-    idx <- -(1:burnin)
-    ret <- lapply(ret,function(v) v[idx])
-    ret$burnin <- bn
-  }
-  ret <- c(ret,list(sdepth=sdepth,msdepth=msdepth,intdist=intdist))
-  ret
-}
-
-
-estimate.global.bayesian.no.depth.mixture <- function(ints,depth,N=1100,burnin=100,pruning=NULL,with.distance.weight=F,multiply=T,show.progress=F) {
-  S <- nrow(ints)
-  
-  d <- GRanges(seqnames=as.character(depth$V1),ranges=IRanges(depth$V2,depth$V3),strand='*')
-  g1 <- GRanges(seqnames=as.character(ints$V1),ranges=IRanges(ints$V2,ints$V3),strand='*')
-  g2 <- GRanges(seqnames=as.character(ints$V4),ranges=IRanges(ints$V5,ints$V6),strand='*')
-  
-  m1 <- match(g1,d)
-  m2 <- match(g2,d)
-  counts <- ints[,7]
-  d <- depth[,4]
-  
-  
-  if(!multiply) {
-    sdepth <- rowSums(cbind(d[m1],d[m2]))
-    msdepth <- median(sdepth)
-  } else {
-    sdepth <- rowProds(cbind(d[m1],d[m2]))
-    msdepth <- median(sdepth)
-  }
-  
-  
-  print(c(msdepth,range(sdepth)))
-  
-  l <- lapply(1:S,function(i) list(z=rep(NA_integer_,N),p1=c(.5,rep(NA_real_,N)),mp=rep(NA_real_,N)))
-  pp <- rep(.5,S)
-  
-  lambda0 <- c(1,rep(NA_real_,N))
-  lambda1 <- c(5,rep(NA_real_,N))
-  
-  
-  totcounts <- sum(counts)
-  
-  
-  if(show.progress) pb <- txtProgressBar()
-  
-  
-  for( i in 1:N ) {
-    #vp <- f(pp,lambda1[i],lambda0[i])
-    g1 <- pp*dpois(counts,lambda1[i])
-    g2 <- (1-pp) * dpois(counts,lambda0[i])
-    
-    vp <- g1/rowSums(cbind(g1,g2)) 
-    if(any(is.na(vp))) {
-      b<- is.na(vp)
-      vp[b] <- as.integer(counts[b]>=lambda1[i])
-    }    
-    vz <- rbinom(S,1,vp)
-    
-    pp <- rbeta(S,1+vz,1+(1-vz)) 
-    
-    l <- mapply(function(lx,z,mp,p){
-      lx$z[i] <- z
-      lx$mp[i] <- mp
-      lx$p1[i+1] <- p
-      lx
-    },l,as.list(vz),as.list(vp),as.list(pp),SIMPLIFY=F)
-    
-    l0 <- 0
-    r <- sum(counts[vz==0])
-    n <- sum(vz==0)
-    
-    l0 <- rgamma(1,r,n)
-    
-    l1 <- l0
-    #r <- totcounts - r #sum(counts[vz==1])
-    
-    l1x <- rgamma(1,totcounts-r,S-n)#sum(vz==1))
-    l1 <- max(l1,l1x)
-    
-    lambda0[i+1] <- l0
-    lambda1[i+1] <- l1
-    
-    print(c(l0,l1))
-    if(show.progress) setTxtProgressBar(pb,i/N)
-  }
-  
-  if(show.progress) close(pb)
-  ret <- list(s=l,l0=lambda0,l1=lambda1)
-  if(!is.null(burnin) && is.numeric(burnin) && burnin > 0) {
-    orig <- ret
-    idx <- -(1:burnin)
-    ret <- lapply(ret,function(v) v[idx])
-    ret$orig <- orig
-  }
-  ret <- c(ret,list(sdepth=sdepth,msdepth=msdepth))
-  ret
-}
-
-
-extract.no.depth.bayesian.prob <- function(model) {
-    sapply(model$s,function(v) sum(v$z)/length(v$z))
 }
 
 extract.global.bayesian.mixture.prob <- function(model) {

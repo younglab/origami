@@ -22,6 +22,7 @@ MINDIST=0
 MAXDIST=0
 NOINTERCHROMOSOMAL=no
 USEDF=0
+USEGLM=no
 
 helpmenu() {
   if [ $# -eq 1 ];
@@ -30,27 +31,36 @@ helpmenu() {
   fi
   
   echo "origami-analysis [options] <mapped reads BAM> <peak BED file> <output prefix>"
-  echo "  -h help menu (this output)"
-  echo "  --without-distance    Turns off weighing interactions with a distance-driven weight"
-  echo "  --iterations=[positive integer] Sets the number of iterations for running the MCMC estimation (default 10000)"
-  echo "  --burn-in=[0 or positive integer] Sets the number of iterations to use as the burn-in period, separate from the --iterations (default 100, 0 means no burn-in period)"
-  echo "  --prune=[0 or >=2] Sets the number of steps at which to take an iteration rather than prune it (default 5, 0 means no pruning)"
-  echo "  --join-nearby-peaks=[positive integer]  For peaks within N distance, merge them together"
-  echo "  --slop-dist=[positive integer]  Set the slop distance on both ends of the peak (default 0, needs --slop-genome)"
-  echo "  --slop-genome=[file]      Genome annotation file for size of each chromosome (default none, needs --slop-dist)"
-  echo "  --save-full-model         Save data from the full model (save the "mini"-model data by default)"
-  echo "  --peak-count-filter=[zscore]   Filter peaks with greater than z-score (default no filtering)"
-  echo "  --use-df=[positive number]  Set effective degrees of freedom for the smooth spline calculation of distance"
-  echo "  --only-map-pets   Only generate files for counting PETs at peaks and interactions, do not run the statistical modeling"
-  echo "  --assign-to-peaks   Generates a secondary output where each end of an observed interaction fall on (one of) the original ChIP peak(s) [experimental]"
-  echo "  --min-dist=[positive integer]  Minimum intrachromsomal distance to consider (default consider all interactions)"
-  echo "  --max-dist=[positive integer]  Maximum intrachromsomal distance to consider (default consider all interactions)"
-  echo "  --no-interchromosomal  Do not consider any interchromsomal interactions"
+  printf "%20s\t     %-50s\n" "-h" "help menu (this output)"
+  printf "%20s\t     %-50s\n" "--without-distance" "Turns off weighing interactions with a distance-driven weight"
+  printf "%20s\t     %-50s\n" "--iterations=[positive integer]" "Sets the number of iterations for running the MCMC estimation (default 10000)"
+  printf "%20s\t     %-50s\n" "--burn-in=[0 or positive integer]" "Sets the number of iterations to use as the burn-in period, separate from the --iterations (default 100, 0 means no burn-in period)"
+  printf "%20s\t     %-50s\n" "--prune=[0 or >=2]" "Sets the number of steps at which to take an iteration rather than prune it (default 5, 0 means no pruning)"
+  printf "%20s\t     %-50s\n" "--join-nearby-peaks=[positive integer]" "For peaks within N distance, merge them together"
+  printf "%20s\t     %-50s\n" "--slop-dist=[positive integer]" "Extends each peak by N base pairs on both ends (default none, requires --slop-genome)"
+  printf "%20s\t     %-50s\n" "--slop-genome=[file]" "Genome annotation file (default none, requires --slop-dist)"
+  printf "%20s\t     %-50s\n" "--save-full-model" "Saves all data points in the model (by default saves the mini model of key data points, WARNING this may generate a really big file)"
+  printf "%20s\t     %-50s\n" "--peak-count-filter=[zscore]" "Remove ChIP peaks with signal above the defined z-score (default no filtering)"
+  printf "%20s\t     %-50s\n" "--only-map-pets" "Only generate files relating to mapping PETs across peaks, does not run the statistical model"
+  printf "%20s\t     %-50s\n" "--assign-to-peaks" "When --slop-genome is used, re-maps the original peak onto the previous peak for display purposes (see manual for details)"
+  printf "%20s\t     %-50s\n" "--min-dist=[positive integer]" "Minimum intrachromsomal distance required between peaks (default consider all interactions)"
+  printf "%20s\t     %-50s\n" "--max-dist=[positive integer]" "Maximum intrachromsomal distance required between peaks (default consider all interactions)"
+  printf "%20s\t     %-50s\n" "--no-interchromosomal" "Do not consider any interchromsomal interactions"
+  printf "\n"
+  printf "Distance estimation (ignored when --without-distance is used)\n"
+  printf "There are two modes, smooth spline (default) and the Poisson GLM (experimental)\n"
+  printf "The smooth spline tends to converge faster, although it may over-estimate the confidence in an interaction\n"
+  printf "The Poisson GLM may explore the uncertainity of the data better, but it takes much longer to converge and tends to require fine tuning of the --iterations, --burn-in, and --prune options\n"
+  printf "\n"
+  printf "For the smooth spline mode (default):\n"
+  printf "%20s\t     %-50s\n" "--use-df=[positive number]" "Sets the effective degrees of freedom for the smooth spline calculation of distance"
+  printf "For the Poisson GLM mode (experimental)\n"
+  printf "%20s\t     %-50s\n" "--use-glm" "Uses the Poisson GLM to estimate the bias due to distance"
 }
 
 
 
-TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter:,use-df:,assign-to-peaks,only-map-pets,join-nearby-peaks:,min-dist:,max-dist:,no-interchromosomal -n 'origami' -- "$@"`
+TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter:,use-df:,assign-to-peaks,only-map-pets,join-nearby-peaks:,min-dist:,max-dist:,no-interchromosomal,use-glm -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -118,6 +128,9 @@ while [ $# -ge 1 ]; do
 		--no-interchromosomal)
 		  NOINTERCHROMOSOMAL=yes
 		  ;;
+		--use-glm)
+		  USEGLM=yes
+		  ;;
 	esac
 	shift
 done
@@ -184,8 +197,7 @@ then
 
   $SCRIPTDIR/estimate-counts.pl $PREFIX-raw-interactions.out > $OUTFILE
   
-  cp $OUTFILE "tmp.out" ### keep temporary for now for debugging purposes
-  
+
   if [ $MINDIST -gt 0 ];
   then
     awk 'function abs(value) { return (value<0?-value:value); } { if($1!=$4 || $3==$5 || abs($5-$3) >= '"$MINDIST"') print }' $OUTFILE > $CARRYFILE
@@ -213,7 +225,7 @@ echo "Estimating interaction belief..."
 
 if [ $ONLYMAP == "no" ];
 then
-  Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL $USEDISTANCE $USEDF
+  Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL $USEDISTANCE $USEDF $USEGLM
   
   if [ $? -ne 0 ];
   then

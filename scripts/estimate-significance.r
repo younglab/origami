@@ -13,6 +13,7 @@ if( !interactive() ) {
   minimodel <- if( !is.na(args[8])) args[8]=="yes" else T
   usedistance <- if( !is.na(args[9])) args[9]=="yes" else T
   usedf <- if( !is.na(args[10])) as.integer(args[10]) else 0
+  useglm <- if( !is.na(args[11])) args[11] == "yes" else F
   
   args <- commandArgs()
   
@@ -62,7 +63,7 @@ if( !interactive() ){
 
     #cat("Model 1\n")
   gbayes.m1 <- estimate.global.bayesian.mixture(p,depth,inttable,burnin=burnin,N=iterations+burnin,pruning=prune,show.progress=T,mini.model=minimodel,
-                                                with.distance.weight=usedistance,usedf=usedf)
+                                                with.distance.weight=usedistance,usedf=usedf,useglm=useglm)
   gbayesp1 <- extract.global.bayesian.mixture.prob(gbayes.m1)
   
   #cat("Model 2\n")
