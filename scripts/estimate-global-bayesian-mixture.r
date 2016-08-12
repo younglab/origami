@@ -9,7 +9,7 @@ calc.zscore <- function(v) (v-mean(v))/sd(v)
 estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=100,pruning=NULL,
                                                         with.distance.weight=F,multiply=T,show.progress=F,
                                                         lambda0.init=1,lambda1.init=5,suppress.counts.higher.than=30,
-                                                        mini.model=T,usedf=0) {
+                                                        mini.model=T,usedf=0,useglm=F) {
   S <- nrow(ints)
   
   d <- GRanges(seqnames=as.character(depth$V1),ranges=IRanges(depth$V2,depth$V3),strand='*')
@@ -161,57 +161,57 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       dbeta0 <- ret$dbeta0[[i]]
       
       d <- log10(intdist[vz==1 & !interchromosomal]+1)
-      #idx <- sample.int(length(d),min(1000,length(d)))
-      x <- cbind(rep(1,length(d)),d,d^2)
+      if( useglm) {
+        x <- cbind(rep(1,length(d)),d,d^2)
       
-      pc <- floor(pmax(counts[vz==1&!is.na(intdist)],0))
+        pc <- floor(pmax(counts[vz==1&!is.na(intdist)],0))
 
-      dbeta1.p <- t(rmvnorm(1,dbeta1,var(log(pc+.1)) *solve(t(x)%*%x)))
+        dbeta1.p <- t(rmvnorm(1,dbeta1,var(log(pc+.1)) *solve(t(x)%*%x)))
 
       
-      lhr <- sum(dpois(pc,exp(x%*%dbeta1.p),log = T)) - sum(dpois(pc,exp(x%*%dbeta1),log=T)) + 
-        sum(dnorm(dbeta1.p,rep(0,length(dbeta1)),rep(10,length(dbeta1)),log=T)) - sum(dnorm(dbeta1,rep(0,length(dbeta1)),rep(10,length(dbeta1)),log=T))
+        lhr <- sum(dpois(pc,exp(x%*%dbeta1.p),log = T)) - sum(dpois(pc,exp(x%*%dbeta1),log=T)) + 
+          sum(dnorm(dbeta1.p,rep(0,length(dbeta1)),rep(10,length(dbeta1)),log=T)) - sum(dnorm(dbeta1,rep(0,length(dbeta1)),rep(10,length(dbeta1)),log=T))
 
-      if(log(runif(1))<lhr) { dbeta1 <- dbeta1.p; dbeta1.acs <- dbeta1.acs+1 }
+        if(log(runif(1))<lhr) { dbeta1 <- dbeta1.p; dbeta1.acs <- dbeta1.acs+1 }
+      } else {
+        s1 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
+      }
 
-      #s1 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(x,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
       d <- log10(intdist[vz==0 & !interchromosomal]+1)
-      #idx <- sample.int(length(d),min(1000,length(d)))
-      x <- cbind(rep(1,length(d)),d,d^2)
+      if( useglm ) { 
+        x <- cbind(rep(1,length(d)),d,d^2)
       
+        pc <- floor(pmax(counts[vz==0&!is.na(intdist)],0))
       
+        dbeta0.p <- t(rmvnorm(1,dbeta0,var(log(pc+.1)) *solve(t(x)%*%x)))
       
-      pc <- floor(pmax(counts[vz==0&!is.na(intdist)],0))
+        lhr <- sum(dpois(pc,exp(x%*%dbeta0.p),log = T)) - sum(dpois(pc,exp(x%*%dbeta0),log=T)) + 
+          sum(dnorm(dbeta0.p,rep(0,length(dbeta0)),rep(10,length(dbeta0)),log=T)) - sum(dnorm(dbeta0,rep(0,length(dbeta0)),rep(10,length(dbeta0)),log=T))
       
-      dbeta0.p <- t(rmvnorm(1,dbeta0,var(log(pc+.1)) *solve(t(x)%*%x)))
-      #print(dbeta0)
-      #print(dbeta0.p)
+        if(log(runif(1))<lhr) { dbeta0 <- dbeta0.p; dbeta0.acs <- dbeta0.acs+1 }
+      } else {
+        s0 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0),df=usedf) else smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0))
+      }
       
-
+      if( useglm) {  
+        ret$dbeta1[[i+1]] <- dbeta1
+        ret$dbeta0[[i+1]] <- dbeta0
+      }
       
-      lhr <- sum(dpois(pc,exp(x%*%dbeta0.p),log = T)) - sum(dpois(pc,exp(x%*%dbeta0),log=T)) + 
-        sum(dnorm(dbeta0.p,rep(0,length(dbeta0)),rep(10,length(dbeta0)),log=T)) - sum(dnorm(dbeta0,rep(0,length(dbeta0)),rep(10,length(dbeta0)),log=T))
-      
-      if(log(runif(1))<lhr) { dbeta0 <- dbeta0.p; dbeta0.acs <- dbeta0.acs+1 }
-      #cat(paste("dbeta0s",dbeta0,dbeta0.p,lhr),sep='\n')
-      
-      ret$dbeta1[[i+1]] <- dbeta1
-      ret$dbeta0[[i+1]] <- dbeta0
-      
-      #s0 <- if( usedf > 0 ) smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0),df=usedf) else smooth.spline(x,pmax(counts[vz==0& !is.na(intdist)]-l0,0))
       
       d <- log10(intdist+1)
       if(any(interchromosomal)) d[interchromosomal] <- log10(minintdist+1) ## set eact interchromsomal interaction to shortest distance (which should have the highest mean read count)
-      x <- cbind(rep(1,length(intdist)),d,d^2)
       
-      #lambdad1 <- pmax(predict(s1,x)$y,0) ### floor the value at 0
-      #lambdad0 <- pmax(predict(s0,x)$y,0) 
-      
-      #lambdad1 <- rpois(length(x),exp(x %*% dbeta1))
-      #lambdad0 <- rpois(length(x),exp(x %*% dbeta0))
-      lambdad1 <- exp(x%*%dbeta1)
-      lambdad0 <- exp(x%*%dbeta0)
-      
+      if(useglm) { 
+        x <- cbind(rep(1,length(intdist)),d,d^2)
+        
+        lambdad1 <- exp(x%*%dbeta1)
+        lambdad0 <- exp(x%*%dbeta0)
+      } else {
+        lambdad1 <- pmax(predict(s1,x)$y,0) ### floor the value at 0
+        lambdad0 <- pmax(predict(s0,x)$y,0) 
+      }
+
 
       
       if( !mini.model) {
@@ -243,7 +243,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       ret <- lapply(ret,function(l) l[-idx])
     }
   } 
-  ret <- c(ret,list(sdepth=sdepth,msdepth=msdepth,intdist=intdist,dbeta1.acs=dbeta1.acs,dbeta0.acs=dbeta0.acs))
+  ret <- c(ret,list(sdepth=sdepth,msdepth=msdepth,intdist=intdist,dbeta1.acs=dbeta1.acs,dbeta0.acs=dbeta0.acs,useglm=useglm))
   if(mini.model) ret <- c(ret,list(zm=zm,lambdad1=lambdad1,lambdad0=lambdad0,pp1avg=pp1avg))
   
   ret
