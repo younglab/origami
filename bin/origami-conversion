@@ -9,15 +9,24 @@ use Getopt::Long;
 my $showhelp = '';
 my $center = 0;
 my $bedmult = 1000;
+my $bedname = "origami";
+my $beddesc = "origami";
 
 GetOptions("help|h"=>\$showhelp,
             "center|c:100"=>\$center,
-            "bedmultiplier=i"=>\$bedmult)
+            "bedmultiplier=i"=>\$bedmult,
+            "bedname|n=s"=>\$bedname,
+            "beddesc|d=s"=>\$beddesc)
 or die "Error in parsing arguments";
 
 
 sub helpmenu {
-  print "origami-conversion <bed/bedpe/washu> <results file> <score column>\n";
+  print "origami-conversion [options] <bed/bedpe/washu> <results file> <score column>\n";
+  print "\t--help|-h\tHelp menu (this menu)\n";
+  print "\t--center|-c [int]\tPrint anchors as INT base pairs around center of anchor\n";
+  print "\t--bedmultiplier [int]\tMultiply origami value by INT for BED score column\n";
+  print "\t--bedname|-n [string]\tSets the BED track name field (default: origami)\n";
+  print "\t--beddesc|-d [string]\tSets the BED description field (default: origami)\n";
 }
 
 sub tobed {
@@ -26,6 +35,7 @@ sub tobed {
   
   die "Bed multiplier must be an integer greater than 0!" if $bedmult <= 0;
   
+  print "track name=\"$bedname\" description=\"$beddesc\"\n";
   while(<F>) {
     chomp;
     my @arr = split /,/;
