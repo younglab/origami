@@ -61,24 +61,19 @@ if( !interactive() ){
 
   cat("Running two-component Bayesian mixture model...\n")
 
-    #cat("Model 1\n")
   gbayes.m1 <- estimate.global.bayesian.mixture(p,depth,inttable,burnin=burnin,N=iterations+burnin,pruning=prune,show.progress=T,mini.model=minimodel,
                                                 with.distance.weight=usedistance,usedf=usedf,useglm=useglm)
   gbayesp1 <- extract.global.bayesian.mixture.prob(gbayes.m1)
-  
-  #cat("Model 2\n")
-  #gbayes.m2 <- estimate.global.bayesian.weighed.depth.mixture(p,depth,burnin=burnin,N=iterations+burnin,pruning=prune,show.progress=T)
-  #gbayesp2 <- extract.global.bayesian.mixture.prob(gbayes.m2)
+
 
 
   
-  m <- cbind(p,hyperg,gbayesp1)#,gbayesp2)
+  m <- cbind(p,hyperg,gbayesp1)
   
   colnames(m) <- c("chromosome1","start1","end1","chromosome2","start2","end2","PET Count","Hypergeometric p-value",
-                   "Bayes mixture 1")#,"Bayes mixture 2")
+                   "Bayes probability")
 
   write.csv(m,file=outfile,row.names=F,quote=F)
   save(hyperg,gbayes.m1,file=modelfile)
-  
-  #save(hyperg,gbayes.m1,gbayes.m2,file=modelfile)
 }
+
