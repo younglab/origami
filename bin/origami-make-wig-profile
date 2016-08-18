@@ -2,6 +2,7 @@
 
 BASEDIR=$(dirname $0)
 SCRIPTDIR=$BASEDIR/../scripts
+COMPRESSION=no
 
 helpmenu() {
   if [ $# -eq 1 ];
@@ -9,13 +10,15 @@ helpmenu() {
     echo $1
   fi
   
-  printf "origami-chip-profile [options] <mapped reads BAM> <output file>\n"
+  printf "origami-make-wig-profile [options] <mapped reads BAM> <output file>\n"
   printf "%20s\t%-50s\n" "-h" "help menu (this output)"
+  printf "%20s\t%-50s\n" "-g" "compress output using gzip"
+  printf "%20s\t%-50s\n" "-b" "compress output using bzip2"
 }
 
 
 
-TEMP=`getopt -o h -n 'origami' -- "$@"`
+TEMP=`getopt -o hbg -n 'origami' -- "$@"`
 
 if [ $? -ne 0 ];
 then
@@ -35,6 +38,12 @@ while [ $# -ge 1 ]; do
 			helpmenu
 			exit 0
 			;;
+		-g)
+		  COMPRESSION=gzip
+		  ;;
+		-b)
+		  COMPRESSION=bzip2
+		  ;;
 		*)
 		  helpmenu "Unknown option $1"
 		  exit 1
@@ -52,6 +61,16 @@ fi
 BAMFILE="$1"
 OUTPUTFLIE="$2"
 
-Rscript $SCRIPTDIR/make-chip-profile.r $1 $2
+Rscript $SCRIPTDIR/make-chip-profile.r $BAMFILE $OUTPUTFILE
 
-exit $?
+if [ $? -ne 0 ];
+then
+  echo "Error in generating WIG file"
+  exit 1
+fi
+
+if [ "$COMPRESSION" != "no" ];
+then
+  $COMPRESSION $OUTPUTFILE
+fi
+
