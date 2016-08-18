@@ -29,7 +29,7 @@ cat("track type=wiggle_0 name=\"ChIA-PET\" description=\"ChIA-PET density\"",fil
 dummy <- mapply(function(l,n) {
   if(is.null(l[[1]])) return(NULL)
   cat(paste("fixedStep chrom=",n," start=",format(l[[1]],scientific = F)," step=50",sep=''),file=f,sep='\n')
-  writeLines(format(l[[2]],scientific = F),con=f,sep='\n')
+  writeLines(format(l[[2]],scientific = F,justify = "left",trim=T),con=f,sep='\n')
 },cn,as.list(names(cn)),SIMPLIFY=F)
 
 close(f)
