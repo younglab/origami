@@ -185,6 +185,19 @@ BOWTIEIDX="$1"
 LEFTREADS="$2"
 RIGHTREADS="$3"
 
+if [ ! -e $LEFTREADS ];
+then
+  helpmenu "Error: File $LEFTREADS does not exist!"
+  exit 1
+fi
+
+if [ ! -e $RIGHTREADS ];
+then
+  helpmenu "Error: File $RIGHTREADS does not exist!"
+  exit 1
+fi
+  
+
 if [[ "$PARALLEL" == "on" ]] && [[ ! -n "$LSFQUEUE" ]];
 then
   helpmenu "Error: if using -p, then must use --lsf-queue"
