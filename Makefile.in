@@ -21,6 +21,6 @@ dist:
 install:
 	mkdir ${prefix}
 	mkdir ${bindir}
-	cp bin/origami-alignment bin/origami-analysis bin/origami-conversion ${bindir}
+	cp bin/origami-alignment bin/origami-analysis bin/origami-conversion bin/origami-make-wig-profile bin/origami-merge-replicate-files ${bindir}
 	cp -r scripts ${prefix}
 	cp src/mapped-reads-merge ${bindir}

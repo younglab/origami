@@ -26,6 +26,7 @@ PREPROCESSINGCMD=cat
 MINREADLENGTH=20
 MACSGSIZE=hs
 CALLBROADPEAK=no
+SKIPTRIMMING=no
 
 
 ## other variables
@@ -83,9 +84,10 @@ helpmenu() {
   echo "  --pp=         Run pre-preprocessing command on reads before linker trimming (must be executable, default none)"
   echo "  --macs-gsize=     Set genome size for MACS peak calling (default=hs, same for macs2 or macs)"
   echo "  --macs2-callbroadpeak   Calls broad peak via macs2 and generates merged file"
+  echo "  --skip-trimming   Skip read trimming step for FASTQ reads that already have been trimmed"
 }
 
-TEMP=`getopt -o o:hvapm: -l output:,noskip,splitnum:,keep-tmp,lsf-queue:,forward-linker:,reverse-linker:,ab-linker,a-linker:,b-linker:,pp:,min-len:,macs-gsize:,with-ab-reverse,a-rev-linker:,b-rev-linker:,macs2-callbroadpeak -n 'origami' -- "$@"`
+TEMP=`getopt -o o:hvapm: -l output:,noskip,splitnum:,keep-tmp,lsf-queue:,forward-linker:,reverse-linker:,ab-linker,a-linker:,b-linker:,pp:,min-len:,macs-gsize:,with-ab-reverse,a-rev-linker:,b-rev-linker:,macs2-callbroadpeak,skip-trimming -n 'origami' -- "$@"`
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -171,6 +173,9 @@ while [ $# -ge 1 ]; do
 	  --macs2-callbroadpeak)
 	   CALLBROADPEAK=yes
 	   ;;
+	  --skip-trimming)
+	   SKIPTRIMMING=yes
+	   ;;
 	esac
 	shift
 done
@@ -246,7 +251,7 @@ else
   echo "Running in long-linker trimming mode"
 fi
 
-if [[ "$SKIP" == "off" || ! -e "$OUTPUTDIR/mapped_reads.bam" ]];
+if [[ ("$SKIP" == "off" || ! -e "$OUTPUTDIR/mapped_reads.bam") && ("$SKIPTRIMMING" == "no") ]];
 then
 
 
@@ -422,19 +427,29 @@ then
 
 fi
 
-if [ $USEABLINKER = 'yes' ]
+
+if [ "$SKIPTRIMMING" == "no" ];
 then
-  mv $OUTPUTDIR/tmp/left_chimeric.fq.bz2 $OUTPUTDIR/.
-  mv $OUTPUTDIR/tmp/right_chimeric.fq.bz2 $OUTPUTDIR/.
+  if [ $USEABLINKER = 'yes' ]
+  then
+    mv $OUTPUTDIR/tmp/left_chimeric.fq.bz2 $OUTPUTDIR/.
+    mv $OUTPUTDIR/tmp/right_chimeric.fq.bz2 $OUTPUTDIR/.
+  fi
+
+  ## Keep untrimmed reads
+  mv $OUTPUTDIR/tmp/left_untrimmed.fq.bz2 $OUTPUTDIR/.
+  mv $OUTPUTDIR/tmp/right_untrimmed.fq.bz2 $OUTPUTDIR/.
+
+
+
+  rm -f $OUTPUTDIR/tmp/left_unzip.fq  $OUTPUTDIR/tmp/right_unzip.fq
+else
+  dispatch "$CATFUNC $LEFTREADS | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/left_kept.fq"
+    
+  dispatch "$CATFUNC $RIGHTREADS | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/right_kept.fq"
+  
+  wait
 fi
-
-## Keep untrimmed reads
-mv $OUTPUTDIR/tmp/left_untrimmed.fq.bz2 $OUTPUTDIR/.
-mv $OUTPUTDIR/tmp/right_untrimmed.fq.bz2 $OUTPUTDIR/.
-
-
-
-rm -f $OUTPUTDIR/tmp/left_unzip.fq  $OUTPUTDIR/tmp/right_unzip.fq
 
 echo "Aligning reads"
 if [[ "$SKIP" == off || ! -e "$OUTPUTDIR/mapped_reads.bam" ]]; #&& $BINDIR/bowtie_align.sh $OUTPUTDIR $BOWTIEIDX $PARALLEL $SPLITNUM
