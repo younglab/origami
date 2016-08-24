@@ -24,6 +24,7 @@ NOINTERCHROMOSOMAL=no
 USEDF=0
 USEGLM=no
 
+
 helpmenu() {
   if [ $# -eq 1 ];
   then
@@ -56,11 +57,11 @@ helpmenu() {
   printf "%20s\t     %-50s\n" "--use-df=[positive number]" "Sets the effective degrees of freedom for the smooth spline calculation of distance"
   printf "For the Poisson GLM mode (experimental)\n"
   printf "%20s\t     %-50s\n" "--use-glm" "Uses the Poisson GLM to estimate the bias due to distance"
+
 }
 
-
-
 TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter:,use-df:,assign-to-peaks,only-map-pets,join-nearby-peaks:,min-dist:,max-dist:,no-interchromosomal,use-glm -n 'origami' -- "$@"`
+
 eval set -- "$TEMP"
 
 while [ $# -ge 1 ]; do
@@ -131,6 +132,7 @@ while [ $# -ge 1 ]; do
 		--use-glm)
 		  USEGLM=yes
 		  ;;
+
 	esac
 	shift
 done
@@ -174,14 +176,14 @@ fi
 
 if [ ! -e "$PREFIX-raw-counts.out" ];
 then
-  @BEDTOOLS@ coverage -counts -abam $READSFILE -b $TMPFILE > $PREFIX-raw-counts.out
+  @BEDTOOLSCOVERAGE@
 fi
 
 if [ $ZSCOREFILTER != "no" ];
 then
   FILTERBEDTMP=$RANDOM.keeppeaks.bed
   TRANSTMP=$RANDOM.trans.out
-  Rscript $SCRIPTDIR/peaks-zscore.r $PREFIX-raw-counts.out $FILTERBEDTMP $ZSCOREFILTER
+  @RSCRIPTEXE@ $SCRIPTDIR/peaks-zscore.r $PREFIX-raw-counts.out $FILTERBEDTMP $ZSCOREFILTER
   @BEDTOOLS@ intersect -wa -a $PREFIX-raw-counts.out -b $FILTERBEDTMP > $TRANSTMP
   mv $TRANSTMP $PREFIX-raw-counts.out ## removed filtered counts
   @BEDTOOLS@ intersect -wa -a $TMPFILE -b $FILTERBEDTMP > $TRANSTMP
@@ -225,7 +227,7 @@ echo "Estimating interaction belief..."
 
 if [ $ONLYMAP == "no" ];
 then
-  Rscript $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL $USEDISTANCE $USEDF $USEGLM
+  @RSCRIPTEXE@ $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL $USEDISTANCE $USEDF
   
   if [ $? -ne 0 ];
   then
@@ -243,3 +245,5 @@ then
   $SCRIPTDIR/reassign-anchors.pl $PREFIX-results.csv $OVERLAP > $PREFIX-results-peakassigned.csv
   rm $ANCHORS $OVERLAP
 fi
+
+echo "Analysis completed"
