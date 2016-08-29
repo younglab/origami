@@ -23,6 +23,7 @@ MAXDIST=0
 NOINTERCHROMOSOMAL=no
 USEDF=0
 USEGLM=no
+COUNTCAP=30
 
 
 helpmenu() {
@@ -47,6 +48,8 @@ helpmenu() {
   printf "%20s\t     %-50s\n" "--min-dist=[positive integer]" "Minimum intrachromsomal distance required between peaks (default consider all interactions)"
   printf "%20s\t     %-50s\n" "--max-dist=[positive integer]" "Maximum intrachromsomal distance required between peaks (default consider all interactions)"
   printf "%20s\t     %-50s\n" "--no-interchromosomal" "Do not consider any interchromsomal interactions"
+  printf "%20s\t     %-50s\n" "--count-cap=[count]" ""
+
   printf "\n"
   printf "Distance estimation (ignored when --without-distance is used)\n"
   printf "There are two modes, smooth spline (default) and the Poisson GLM (experimental)\n"
@@ -60,7 +63,7 @@ helpmenu() {
 
 }
 
-TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter:,use-df:,assign-to-peaks,only-map-pets,join-nearby-peaks:,min-dist:,max-dist:,no-interchromosomal,use-glm -n 'origami' -- "$@"`
+TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter:,use-df:,assign-to-peaks,only-map-pets,join-nearby-peaks:,min-dist:,max-dist:,no-interchromosomal,use-glm,count-cap: -n 'origami' -- "$@"`
 
 eval set -- "$TEMP"
 
@@ -132,7 +135,10 @@ while [ $# -ge 1 ]; do
 		--use-glm)
 		  USEGLM=yes
 		  ;;
-
+    --count-cap)
+      COUNTCAP="$2"
+      shift
+      ;;
 	esac
 	shift
 done
@@ -227,7 +233,7 @@ echo "Estimating interaction belief..."
 
 if [ $ONLYMAP == "no" ];
 then
-  @RSCRIPTEXE@ $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL $USEDISTANCE $USEDF
+  @RSCRIPTEXE@ $SCRIPTDIR/estimate-significance.r $PREFIX-raw-counts.out $PREFIX-raw-int-counts.txt $PREFIX-results.csv $PREFIX-model-data.Rdata $ITERATIONS $BURNIN $PRUNE $MINIMODEL $USEDISTANCE $USEDF $COUNTCAP
   
   if [ $? -ne 0 ];
   then

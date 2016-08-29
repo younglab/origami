@@ -14,6 +14,7 @@ if( !interactive() ) {
   usedistance <- if( !is.na(args[9])) args[9]=="yes" else T
   usedf <- if( !is.na(args[10])) as.integer(args[10]) else 0
   useglm <- if( !is.na(args[11])) args[11] == "yes" else F
+  count.cap <- if(!is.na(args[12])) as.integer(args[12]) else 30
   
   args <- commandArgs()
   
@@ -62,7 +63,7 @@ if( !interactive() ){
   cat("Running two-component Bayesian mixture model...\n")
 
   gbayes.m1 <- estimate.global.bayesian.mixture(p,depth,inttable,burnin=burnin,N=iterations+burnin,pruning=prune,show.progress=T,mini.model=minimodel,
-                                                with.distance.weight=usedistance,usedf=usedf,useglm=useglm)
+                                                with.distance.weight=usedistance,usedf=usedf,useglm=useglm,suppress.counts.higher.than=count.cap)
   gbayesp1 <- extract.global.bayesian.mixture.prob(gbayes.m1)
 
 

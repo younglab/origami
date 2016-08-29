@@ -162,11 +162,11 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       dbeta1 <- ret$dbeta1[[i]]
       dbeta0 <- ret$dbeta0[[i]]
       
-      d <- log10(intdist[vz==1 & !interchromosomal]+1)
+      d <- log10(intdist[vz==1 & !interchromosomal & !suppress]+1)
       if( useglm) {
         x <- cbind(rep(1,length(d)),d,d^2)
       
-        pc <- floor(pmax(counts[vz==1&!is.na(intdist)],0))
+        pc <- floor(pmax(counts[vz==1&!is.na(intdist)&!suppress],0))
 
         dbeta1.p <- t(rmvnorm(1,dbeta1,var(log(pc+.1)) *solve(t(x)%*%x)))
 
@@ -176,14 +176,14 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
 
         if(log(runif(1))<lhr) { dbeta1 <- dbeta1.p; dbeta1.acs <- dbeta1.acs+1 }
       } else {
-        s1 <- if( usedf > 0 ) smooth.spline(d,pmax(counts[vz==1& !is.na(intdist)]-l1,0),df=usedf) else smooth.spline(d,pmax(counts[vz==1& !is.na(intdist)]-l1,0))
+        s1 <- if( usedf > 0 ) smooth.spline(d,pmax(counts[vz==1& !is.na(intdist) & !suppress]-l1,0),df=usedf) else smooth.spline(d,pmax(counts[vz==1& !is.na(intdist) & !suppress]-l1,0))
       }
 
-      d <- log10(intdist[vz==0 & !interchromosomal]+1)
+      d <- log10(intdist[vz==0 & !interchromosomal & !suppress]+1)
       if( useglm ) { 
         x <- cbind(rep(1,length(d)),d,d^2)
       
-        pc <- floor(pmax(counts[vz==0&!is.na(intdist)],0))
+        pc <- floor(pmax(counts[vz==0&!is.na(intdist)&!suppress],0))
       
         dbeta0.p <- t(rmvnorm(1,dbeta0,var(log(pc+.1)) *solve(t(x)%*%x)))
       
@@ -192,7 +192,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       
         if(log(runif(1))<lhr) { dbeta0 <- dbeta0.p; dbeta0.acs <- dbeta0.acs+1 }
       } else {
-        s0 <- if( usedf > 0 ) smooth.spline(d,pmax(counts[vz==0& !is.na(intdist)]-l0,0),df=usedf) else smooth.spline(d,pmax(counts[vz==0& !is.na(intdist)]-l0,0))
+        s0 <- if( usedf > 0 ) smooth.spline(d,pmax(counts[vz==0& !is.na(intdist) & !suppress]-l0,0),df=usedf) else smooth.spline(d,pmax(counts[vz==0& !is.na(intdist) & !suppress]-l0,0))
       }
       
       if( useglm) {  
