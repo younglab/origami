@@ -344,7 +344,7 @@ hichip() {
   verbosecmd "$CATFUNC $RIGHTREADS | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/right_reads.fq"
   
   @CUTADAPTOR@ -a $HICHIPLIGATIONJUNCTION -m $MINREADLENGTH -o $OUTPUTDIR/tmp/left_trimmed.fastq --untrimmed-output=$OUTPURDIR/tmp/left_untrimmed.fastq -p $OUTPUTDIR/tmp/right_left_trimmed.fastq --untrimmed-paired-output=$OUTPUTDIR/tmp/right_left_untrimmed.fastq $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
-  @CUTADAPTOR@ -a $HICHIPLIGATIONJUNCTION -m $MINREADLENGTH -o $OUTPUTDIR/tmp/right_trimmed.fastq --untrimmed-output=$OUTPURDIR/tmp/right_untrimmed.fastq -p $OUTPUTDIR/tmp/left_right_trimmed.fastq --untrimmed-paired-output=$OUTPUTDIR/tmp/left_right_untrimmed.fastq $OUTPUTDIR/tmp/right_left_untrimmed.fastq $OUTPURDIR/tmp/left_untrimmed.fastq
+  @CUTADAPTOR@ -a $HICHIPLIGATIONJUNCTION -m $MINREADLENGTH -o $OUTPUTDIR/tmp/right_trimmed.fastq --untrimmed-output=$OUTPURDIR/tmp/right_untrimmed.fastq -p $OUTPUTDIR/tmp/left_right_trimmed.fastq --untrimmed-paired-output=$OUTPUTDIR/tmp/left_right_untrimmed.fastq $OUTPUTDIR/tmp/right_left_untrimmed.fastq $OUTPUTDIR/tmp/left_untrimmed.fastq
 
   cat $OUTPUTDIR/tmp/left_trimmed.fastq  $OUTPUTDIR/tmp/left_right_trimmed.fastq > $OUTPUTDIR/tmp/left_reads.fq
   cat $OUTPUTDIR/tmp/right_trimmed.fastq  $OUTPUTDIR/tmp/right_left_trimmed.fastq > $OUTPUTDIR/tmp/right_reads.fq
