@@ -18,7 +18,6 @@ USEDISTANCE=yes
 ZSCOREFILTER=no
 ASSIGNTOPEAKS=no
 ONLYMAP=no
-<<<<<<< HEAD
 MINDIST=0
 MAXDIST=0
 NOINTERCHROMOSOMAL=no
@@ -26,9 +25,6 @@ USEDF=0
 USEGLM=no
 COUNTCAP=30
 
-=======
-USEDF=0
->>>>>>> hichip
 
 helpmenu() {
   if [ $# -eq 1 ];
@@ -195,11 +191,7 @@ if [ $ZSCOREFILTER != "no" ];
 then
   FILTERBEDTMP=$RANDOM.keeppeaks.bed
   TRANSTMP=$RANDOM.trans.out
-<<<<<<< HEAD
   @RSCRIPTEXE@ $SCRIPTDIR/peaks-zscore.r $PREFIX-raw-counts.out $FILTERBEDTMP $ZSCOREFILTER
-=======
-  Rscript $SCRIPTDIR/peaks-zscore.r $PREFIX-raw-counts.out $FILTERBEDTMP $ZSCOREFILTER
->>>>>>> hichip
   @BEDTOOLS@ intersect -wa -a $PREFIX-raw-counts.out -b $FILTERBEDTMP > $TRANSTMP
   mv $TRANSTMP $PREFIX-raw-counts.out ## removed filtered counts
   @BEDTOOLS@ intersect -wa -a $TMPFILE -b $FILTERBEDTMP > $TRANSTMP

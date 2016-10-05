@@ -258,83 +258,83 @@ linkertrimming() {
   
   wait
 
-fi
 
 
-if [ "$SKIPTRIMMING" == "no" ];
-then
-
-  if [ $USEABLINKER = 'yes' ]
+  if [ "$SKIPTRIMMING" == "no" ];
   then
-    mv $OUTPUTDIR/tmp/left_chimeric.fq.bz2 $OUTPUTDIR/.
-    mv $OUTPUTDIR/tmp/right_chimeric.fq.bz2 $OUTPUTDIR/.
-  fi
 
-  ## Keep untrimmed reads
-  mv $OUTPUTDIR/tmp/left_untrimmed.fq.bz2 $OUTPUTDIR/.
-  mv $OUTPUTDIR/tmp/right_untrimmed.fq.bz2 $OUTPUTDIR/.
+    if [ $USEABLINKER = 'yes' ]
+    then
+      mv $OUTPUTDIR/tmp/left_chimeric.fq.bz2 $OUTPUTDIR/.
+      mv $OUTPUTDIR/tmp/right_chimeric.fq.bz2 $OUTPUTDIR/.
+    fi
+
+    ## Keep untrimmed reads
+    mv $OUTPUTDIR/tmp/left_untrimmed.fq.bz2 $OUTPUTDIR/.
+    mv $OUTPUTDIR/tmp/right_untrimmed.fq.bz2 $OUTPUTDIR/.
 
 
 
-  rm -f $OUTPUTDIR/tmp/left_unzip.fq  $OUTPUTDIR/tmp/right_unzip.fq
+    rm -f $OUTPUTDIR/tmp/left_unzip.fq  $OUTPUTDIR/tmp/right_unzip.fq
 
-else
-  dispatch "$CATFUNC $LEFTREADS | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/left_kept.fq"
+  else
+    dispatch "$CATFUNC $LEFTREADS | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/left_kept.fq"
     
-  dispatch "$CATFUNC $RIGHTREADS | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/right_kept.fq"
+    dispatch "$CATFUNC $RIGHTREADS | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/right_kept.fq"
   
-  wait
-fi
-
-echo "Aligning reads"
-if [[ "$SKIP" == off || ! -e "$OUTPUTDIR/mapped_reads.bam" ]]; #&& $BINDIR/bowtie_align.sh $OUTPUTDIR $BOWTIEIDX $PARALLEL $SPLITNUM
-then
-
-  if [ $PARALLEL == "on" ];
-  then
-    dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/left_kept.fq $OUTPUTDIR/tmp/leftkept"
-    dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/right_kept.fq $OUTPUTDIR/tmp/rightkept"
-
-    wait
-
-    for FILE in $OUTPUTDIR/tmp/leftkept*
-    do
-  	  dispatch "@BOWTIE@ $BOWTIEOPT -n 1 -m 1 -p 6 --sam $BOWTIEIDX $FILE > $FILE.sam; @SAMTOOLS@ view -Sb $FILE.sam > $FILE.bam; rm $FILE.sam"
-    done
-
-    for FILE in $OUTPUTDIR/tmp/rightkept*
-    do
-    	dispatch "@BOWTIE@ $BOWTIEOPT -n 1 -m 1 -p 6 --sam $BOWTIEIDX $FILE > $FILE.sam; @SAMTOOLS@ view -Sb $FILE.sam > $FILE.bam; rm $FILE.sam"
-    done
-
-    wait
-
-    dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ merge left_kept.bam leftkept*.bam"
-    dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ merge right_kept.bam rightkept*.bam"
-
-    wait
-
-    dispatch "rm $OUTPUTDIR/tmp/leftkept* $OUTPUTDIR/tmp/rightkept*"
-    wait
-  else
-    dispatch "@BOWTIE@ $BOWTIEOPT -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/left_kept.fq > $OUTPUTDIR/tmp/left_kept.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/left_kept.sam > $OUTPUTDIR/tmp/left_kept.bam; rm $OUTPUTDIR/tmp/left_kept.sam"
-    dispatch "@BOWTIE@ $BOWTIEOPT -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/right_kept.fq > $OUTPUTDIR/tmp/right_kept.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/right_kept.sam > $OUTPUTDIR/tmp/right_kept.bam; rm $OUTPUTDIR/tmp/right_kept.sam"
-
     wait
   fi
 
-
-  if [ $PARALLEL = "on" ];
+  echo "Aligning reads"
+  if [[ "$SKIP" == off || ! -e "$OUTPUTDIR/mapped_reads.bam" ]]; #&& $BINDIR/bowtie_align.sh $OUTPUTDIR $BOWTIEIDX $PARALLEL $SPLITNUM
   then
-    dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ sort -Obam -Tlefttmp -n left_kept.bam > left_kept.sorted.bam"
+
+    if [ $PARALLEL == "on" ];
+    then
+      dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/left_kept.fq $OUTPUTDIR/tmp/leftkept"
+      dispatch "split -l $SPLITNUM $OUTPUTDIR/tmp/right_kept.fq $OUTPUTDIR/tmp/rightkept"
+
+      wait
+
+      for FILE in $OUTPUTDIR/tmp/leftkept*
+      do
+  	    dispatch "@BOWTIE@ $BOWTIEOPT -n 1 -m 1 -p 6 --sam $BOWTIEIDX $FILE > $FILE.sam; @SAMTOOLS@ view -Sb $FILE.sam > $FILE.bam; rm $FILE.sam"
+      done
+
+      for FILE in $OUTPUTDIR/tmp/rightkept*
+      do
+    	  dispatch "@BOWTIE@ $BOWTIEOPT -n 1 -m 1 -p 6 --sam $BOWTIEIDX $FILE > $FILE.sam; @SAMTOOLS@ view -Sb $FILE.sam > $FILE.bam; rm $FILE.sam"
+      done
+
+      wait
+
+      dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ merge left_kept.bam leftkept*.bam"
+      dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ merge right_kept.bam rightkept*.bam"
+
+      wait
+
+      dispatch "rm $OUTPUTDIR/tmp/leftkept* $OUTPUTDIR/tmp/rightkept*"
+      wait
+    else
+      dispatch "@BOWTIE@ $BOWTIEOPT -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/left_kept.fq > $OUTPUTDIR/tmp/left_kept.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/left_kept.sam > $OUTPUTDIR/tmp/left_kept.bam; rm $OUTPUTDIR/tmp/left_kept.sam"
+      dispatch "@BOWTIE@ $BOWTIEOPT -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/right_kept.fq > $OUTPUTDIR/tmp/right_kept.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/right_kept.sam > $OUTPUTDIR/tmp/right_kept.bam; rm $OUTPUTDIR/tmp/right_kept.sam"
+
+      wait
+    fi
+
+
+    if [ $PARALLEL = "on" ];
+    then
+      dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ sort -Obam -Tlefttmp -n left_kept.bam > left_kept.sorted.bam"
   
-    dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ sort -Obam -Trighttmp -n right_kept.bam > right_kept.sorted.bam"
-  else
-    cd $OUTPUTDIR/tmp
-    dispatch "@SAMTOOLS@ sort -Obam -Tlefttmp -n left_kept.bam > left_kept.sorted.bam"
-  
-    dispatch "@SAMTOOLS@ sort -Obam -Trighttmp -n right_kept.bam > right_kept.sorted.bam"
-    cd ../..
+      dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ sort -Obam -Trighttmp -n right_kept.bam > right_kept.sorted.bam"
+    else
+      cd $OUTPUTDIR/tmp
+      dispatch "@SAMTOOLS@ sort -Obam -Tlefttmp -n left_kept.bam > left_kept.sorted.bam"
+    
+      dispatch "@SAMTOOLS@ sort -Obam -Trighttmp -n right_kept.bam > right_kept.sorted.bam"
+      cd ../..
+    fi
   fi
 
 
