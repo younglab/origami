@@ -52,12 +52,12 @@ verbosecmd() {
 }
 
 dispatch() {
-        if [ "$PARALLEL" = on ]
-        then
-                bsub -K -q $LSFQUEUE -J origami -o $OUTPUTDIR/logs/cluster_log.txt "$@" &
-        else
-                eval "$@"
-        fi
+  if [ "$PARALLEL" = on ]
+  then
+    bsub -K -q $LSFQUEUE -J origami -o $OUTPUTDIR/logs/cluster_log.txt "$@" &
+  else
+    eval "$@"
+  fi
 }
 
 helpmenu() {
@@ -69,23 +69,23 @@ helpmenu() {
   printf "origami-alignment [options] <bowtie1 index> <first read FASTQ> <second read FASTQ>\n"
   printf "\tFor the FASTQ files, they may be either in plain text (no compression), gzip (.gz),\n"
   printf "\tor bzip2 (.bz2) format (automatically deteced by file suffix)\n\n"
-  printf "%15s\t%-50s\n" "-o,--output=" "directory to output the alignment results (default is output/)"
-  printf "%15s\t%-50s\n" "-h" "help menu (this menu)"
-  printf "%15s\t%-50s\n" "-v" "turn on verbose mode"
-  printf "%15s\t%-50s\n" "-m,--min-len=" "minimum read-length to keep post trimming (default is 15 bp)"
-  printf "%15s\t%-50s\n" "-p" "run parallel LSF mode (currently requires bsub)"
-  printf "%15s\t%-50s\n" "--lsf-queue=[queue]" "set the LSF queue to use in parallel mode (implies -p)"
-  printf "%15s\t%-50s\n" "--keep-tmp" "don't delete the temporary files"
-  printf "%15s\t%-50s\n" "--splitnum=[NUM]" "split input reads into NUM smaller files during paralleization (default 10000000)"
-  printf "%15s\t%-50s\n" "--mode=[mode]" "run origami in long-read (long), AB-linker (ab), or HiChIP (hichip) mode (see documentation, default long)"
-  printf "%15s\t%-50s\n" "--forward-linker=[DNA]"  "set the long-read foward-linker sequence (default ACGCGATATCTTATCTGACT)"
-  printf "%15s\t%-50s\n" "--reverse-linker=[DNA]"  "set the long-read reverse-linker sequence (default AGTCAGATAAGATATCGCGT)"
-  printf "%15s\t%-50s\n" "--a-linker=[DNA]" "set the AB-linker A-linker sequence (default CTGCTGTCCG)"
-  printf "%15s\t%-50s\n" "--b-linker=[DNA]" "set the AB-linker B-linker sequence (default, CTGCTGTCAT)"
-  printf "%15s\t%-50s\n" "--junction=[DNA]" "set the junction to look for in HiChIP"
-  printf "%15s\t%-50s\n" "--pp=[executable]" "run executable on each read file before trimming (must be executable, default none)"
-  printf "%15s\t%-50s\n" "--macs-gsize=[string]" "set genome size for macs2 peak calling (default is 'hs')"
-  printf "%15s\t%-50s\n" "--callbroadpeak" "calls broad peaks via macs2 and generates merged peak file"
+  (printf "%s\t%s\n" "-o,--output=" "directory to output the alignment results (default is output/)"
+  printf "%s\t%s\n" "-h" "help menu (this menu)"
+  printf "%s\t%s\n" "-v" "turn on verbose mode"
+  printf "%s\t%s\n" "-m,--min-len=" "minimum read-length to keep post trimming (default is 15 bp)"
+  printf "%s\t%s\n" "-p" "run parallel LSF mode (currently requires bsub)"
+  printf "%s\t%s\n" "--lsf-queue=[queue]" "set the LSF queue to use in parallel mode (implies -p)"
+  printf "%s\t%s\n" "--keep-tmp" "don't delete the temporary files"
+  printf "%s\t%s\n" "--splitnum=[NUM]" "split input reads into NUM smaller files during paralleization (default 10000000)"
+  printf "%s\t%s\n" "--mode=[mode]" "run origami in long-read (long), AB-linker (ab), or HiChIP (hichip) mode (see documentation, default long)"
+  printf "%s\t%s\n" "--forward-linker=[DNA]"  "set the long-read foward-linker sequence (default ACGCGATATCTTATCTGACT)"
+  printf "%s\t%s\n" "--reverse-linker=[DNA]"  "set the long-read reverse-linker sequence (default AGTCAGATAAGATATCGCGT)"
+  printf "%s\t%s\n" "--a-linker=[DNA]" "set the AB-linker A-linker sequence (default CTGCTGTCCG)"
+  printf "%s\t%s\n" "--b-linker=[DNA]" "set the AB-linker B-linker sequence (default, CTGCTGTCAT)"
+  printf "%s\t%s\n" "--junction=[DNA]" "set the junction to look for in HiChIP"
+  printf "%s\t%s\n" "--pp=[executable]" "run executable on each read file before trimming (must be executable, default none)"
+  printf "%s\t%s\n" "--macs-gsize=[string]" "set genome size for macs2 peak calling (default is 'hs')"
+  printf "%s\t%s\n" "--callbroadpeak" "calls broad peaks via macs2 and generates merged peak file") | column -t -s $'\t'
   
 }
 
@@ -354,7 +354,7 @@ linkertrimming() {
 
 
 hichip() {
-  echo "Running in HiChIP mode"
+  echo "Running in HiChIP mode (WARNING: experimental)"
   
   if [ "$HICHIPLIGATIONJUNCTION" == "none" ];
   then
@@ -508,7 +508,7 @@ echo "Running origami with the following command line: $ORIGINALCMD" > $OUTPUTDI
 
 if [[ "$VERBOSE" != "on" ]] && [[ "$PARALLEL" == "on" ]];
 then
-  export BSUB_QUIET=Y
+  export BSUB_QUIET=Y ## this option disables LSF from sending e-mails after each job is completed, which can lead to a lot of e-mails
 fi
 
 ## Get file suffix (assumes same suffix for both left and right files)
