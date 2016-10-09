@@ -95,7 +95,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
   totcounts <- sum(counts)
   
   lambdad1 <- lambdad0 <- rep(0,length(counts))
-  
+  #lambdad1 <- lambdad0 <- rpois(length(counts),lambda0.init)
   
   if(show.progress) pb <- txtProgressBar()
   
@@ -138,32 +138,49 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       d0avgN <- d0avgN+1
     }
     
-    b <- vz == 0 & !suppress
-    r0 <- sum(counts[b])
-    n <- sum(b)
 
-    l0 <- rgamma(1,r0+1,n+1)
+    
+    if(with.distance.weight) {
+      lambda0prob <- pmin(pmax(lambda0/(lambda0+lambdad0),.1),.9) ### this is to make sure the probabilities never go fully to 0 or 1 so we can estimate the uncertainity and not get stuck at an extreme
+      lambda1prob <- pmin(pmax(lambda1/(lambda1+lambdad1),.1),.9)
+      
+      groupcounts0 <- rbinom(length(counts),counts,lambda0prob)
+      distcounts0 <- counts-groupcounts0
+    
+      groupcounts1 <- rbinom(length(counts),counts,lambda1prob)
+      distcounts1 <- counts-groupcounts1
+    } else {
+      groupcounts0 <- groupcounts1 <- counts
+      distcounts0 <- distcounts1 <- rep(0,length(counts))
+    }
+    
+    isgroup0 <- vz == 0
+    
+    r0 <- sum(groupcounts0[isgroup0&!suppress])
+    n0 <- sum(isgroup0&!suppress)
+
+    l0 <- rgamma(1,r0+1,n0+1)
     
     l1 <- l0
     
-    b <- vz == 1 & !suppress
-    r1 <- sum(counts[b])
-    n <- sum(b)
+    r1 <- sum(groupcounts1[!isgroup0&!suppress])
+    n1 <- sum(!isgroup0 & !suppress)
     
-    
-    
-    l1x <- rgamma(1,r1+1,n+1)
+    l1x <- rgamma(1,r1+1,n1+1)
     l1 <- max(l1,l1x)
     
     ret$lambda0[i+1] <- l0
     ret$lambda1[i+1] <- l1
     
+    
     if(with.distance.weight) {
       dbeta1 <- ret$dbeta1[[i]]
       dbeta0 <- ret$dbeta0[[i]]
       
-      d <- log10(intdist[vz==1 & !interchromosomal & !suppress]+1)
+      d1 <- log10(intdist[!isgroup0 & !interchromosomal & !suppress]+1)
+      dc1 <- distcounts1[!isgroup0 & !interchromosomal & !suppress]
       if( useglm) {
+        stop("Not implemented at the moment")
         x <- cbind(rep(1,length(d)),d,d^2)
       
         pc <- floor(pmax(counts[vz==1&!is.na(intdist)&!suppress],0))
@@ -176,11 +193,16 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
 
         if(log(runif(1))<lhr) { dbeta1 <- dbeta1.p; dbeta1.acs <- dbeta1.acs+1 }
       } else {
-        s1 <- if( usedf > 0 ) smooth.spline(d,pmax(counts[vz==1& !is.na(intdist) & !suppress]-l1,0),df=usedf) else smooth.spline(d,pmax(counts[vz==1& !is.na(intdist) & !suppress]-l1,0))
+        params <- list(x=d1,y=dc1)
+        if( usedf > 0 ) params[['df']] <- usedf
+        s1 <- do.call(smooth.spline,params)
       }
 
-      d <- log10(intdist[vz==0 & !interchromosomal & !suppress]+1)
+      d0 <- log10(intdist[isgroup0 & !interchromosomal & !suppress]+1)
+      dc0 <- distcounts0[isgroup0 & !interchromosomal & !suppress]
       if( useglm ) { 
+        stop("Not implemented at the moment")
+        
         x <- cbind(rep(1,length(d)),d,d^2)
       
         pc <- floor(pmax(counts[vz==0&!is.na(intdist)&!suppress],0))
@@ -192,7 +214,9 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       
         if(log(runif(1))<lhr) { dbeta0 <- dbeta0.p; dbeta0.acs <- dbeta0.acs+1 }
       } else {
-        s0 <- if( usedf > 0 ) smooth.spline(d,pmax(counts[vz==0& !is.na(intdist) & !suppress]-l0,0),df=usedf) else smooth.spline(d,pmax(counts[vz==0& !is.na(intdist) & !suppress]-l0,0))
+        params <- list(x=d0,y=dc0)
+        if( usedf > 0 ) params[['df']] <- usedf
+        s0 <- do.call(smooth.spline,params)      
       }
       
       if( useglm) {  
@@ -202,7 +226,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       
       
       d <- log10(intdist+1)
-      if(any(interchromosomal)) d[interchromosomal] <- log10(minintdist+1) ## set eact interchromsomal interaction to shortest distance (which should have the highest mean read count)
+      if(any(interchromosomal)) d[interchromosomal] <- exp(log10(minintdist+1)) ## set eact interchromsomal interaction to shortest distance (which should have the highest mean read count)
       
       if(useglm) { 
         x <- cbind(rep(1,length(intdist)),d,d^2)
@@ -213,7 +237,6 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
         lambdad1 <- pmax(predict(s1,d)$y,0) ### floor the value at 0
         lambdad0 <- pmax(predict(s0,d)$y,0) 
       }
-
 
       
       if( !mini.model) {

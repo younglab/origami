@@ -1,6 +1,3 @@
-library(compiler,quietly = !interactive())
-invisible(enableJIT(3)) ## enable JIT compilation
-
 if( !interactive() ) {
   args <- commandArgs(T)
   peakcounts <- if( !is.na(args[1])) args[1] else "peak-counts.txt"
