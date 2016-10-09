@@ -193,7 +193,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
 
         if(log(runif(1))<lhr) { dbeta1 <- dbeta1.p; dbeta1.acs <- dbeta1.acs+1 }
       } else {
-        params <- list(x=exp(d1),y=dc1)
+        params <- list(x=d1,y=dc1)
         if( usedf > 0 ) params[['df']] <- usedf
         s1 <- do.call(smooth.spline,params)
       }
@@ -214,7 +214,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       
         if(log(runif(1))<lhr) { dbeta0 <- dbeta0.p; dbeta0.acs <- dbeta0.acs+1 }
       } else {
-        params <- list(x=exp(d0),y=dc0)
+        params <- list(x=d0,y=dc0)
         if( usedf > 0 ) params[['df']] <- usedf
         s0 <- do.call(smooth.spline,params)      
       }
@@ -225,7 +225,7 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
       }
       
       
-      d <- exp(log10(intdist+1))
+      d <- log10(intdist+1)
       if(any(interchromosomal)) d[interchromosomal] <- exp(log10(minintdist+1)) ## set eact interchromsomal interaction to shortest distance (which should have the highest mean read count)
       
       if(useglm) { 
