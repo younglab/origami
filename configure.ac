@@ -90,9 +90,9 @@ fi
 
 AC_SUBST([BEDTOOLSCOVERAGE])
 
-AC_MSG_NOTICE([Checking for C++ libraries needed by origami])
-AC_CHECK_HEADER([api/BamReader.h])
-AC_CHECK_HEADER([api/BamWriter.h])
+#AC_MSG_NOTICE([Checking for C++ libraries needed by origami])
+#AC_CHECK_HEADER([api/BamReader.h])
+#AC_CHECK_HEADER([api/BamWriter.h])
 
 AC_MSG_NOTICE([Checking for R libraries needed by origami])
 R_LIBRARY_TEST([GenomicRanges])
