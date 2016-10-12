@@ -5,13 +5,20 @@ output: pdf_document
 
 ## Installation
 
+To install origami, first run the configure script to test for most of the dependencies origami needs. This would also be a useful time to help set the installation location, such as by using the --prefix option. After configure completes successfully, run make to compile the C++ code. Then a make install will copy all the files over correctly.
+
 ### Depedencies
 * cutadapt (version 1.8)
 * samtools (version 1.2)
 * bamtools
-* bowtie
+* bowtie1
 * MACS2
-* R
+* R (with R libraries GenomicsRanges, matrixStats)
+* g++
+* bash
+* Make
+* autoconf
+
 
 ## Running the pipeline
 
@@ -19,6 +26,7 @@ The pipeline has two core steps that need to be run:
 
 * origami-alignment -- aligns the ChIA-PET reads
 * origami-analysis -- estimates the confidence in each ChIA-PET interaction
+* origami-conversion
 
 ### Aligning ChIA-PET reads (origami-alignment)
 
