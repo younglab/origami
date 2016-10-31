@@ -1,32 +1,31 @@
----
-output: pdf_document
----
 # origami
 
 ## Installation
 
-To install origami, first run the configure script to test for most of the dependencies origami needs. This would also be a useful time to help set the installation location, such as by using the --prefix option. After configure completes successfully, run make to compile the C++ code. Then a make install will copy all the files over correctly.
+To install origami, first run the configure script to test for the presence of most of the dependencies origami needs. After configure completes successfully, run make to compile the C++ code. Then  make install will copy all the necessary files to the installation directory.
+
+(Note: at the present time, the configure script does not check if Bamtools is installed correctly, please make sure it is! The Makfile may need to be adjusted to adapt to where Bamtools API files are installed on your system.)
 
 ### Depedencies
-* cutadapt (version 1.8)
-* samtools (version 1.2)
+* cutadapt (tested with version 1.8)
+* samtools (tested with version 1.2)
 * bamtools
 * bowtie1
-* MACS2
-* R (with R libraries GenomicsRanges, matrixStats)
+* MACS1 and MACS2
+* R (also requires the R libraries GenomicsRanges, matrixStats)
 * g++
 * bash
-* Make
+* make
 * autoconf
 
 
 ## Running the pipeline
 
-The pipeline has two core steps that need to be run:
+The pipeline has three steps that need to be run:
 
 * origami-alignment -- aligns the ChIA-PET reads
 * origami-analysis -- estimates the confidence in each ChIA-PET interaction
-* origami-conversion
+* origami-conversion -- converts the origami output to popular genomic file formats for visualization
 
 ### Aligning ChIA-PET reads (origami-alignment)
 
@@ -34,22 +33,25 @@ Aligning the reads is handled through the origami-alignment executable.
 
 Command: origami-alignment [options] <bowtie idx> <FASTQ read 1> <FASTQ read 2>
 
-This script will take a bowtie index (*must* be Bowtie 1 index) and the paired read files and handle the adapter trimming, alignment, and read peak calling. The output of the executable will be a BAM file of aligned reads as well as a list of peaks called (via MACS2). The FASTQ files can be in either gzipped or bz2zipped formats and the software will correctly unpack them. The optional arguments are below:
+This script will take a bowtie index (*must* be Bowtie 1 index) and the paired read files and handle the adapter trimming, alignment, and read peak calling. The output of this step is a BAM file of aligned paired reads and peak calls from MACS1 and MACS2 named accordingly. The FASTQ files can be in either gzipped or bz2zipped formats. The optional arguments are below:
 
 * -o,--output=: The output directory to put all the aligned reads and peak calls in. Defaults to "output"
 * -h: Shows the help menu
 * -v: Turn on verbose mode
 * -p: Activates parallization on the LSF queue, *must* be paired with --lsf-queue. It is also recommended that --splitnum be set approrpiate to the data
-* -m=,--min-len=[integer]: Sets the minimum read length to keep post-adapter trimming. Default is 15 bp
-* --keep-tmp: Don't delete temporary files when the alignment is finished
+* --divide-pets=[NUM]: When -p is active, this will divide the FASTQ reads into subfiles of NUM reads to distribute over a LSF queue for faster processing
 * --lsf-queue=[queue name]: Sets the LSF queue to queue all the parallized jobs, implies -p. There is no default for this option
+* -m=,--min-len=[integer]: Sets the minimum read length to keep post-adapter trimming. Default is 15 bp
+* --mode=[mode]: Sets the type of linker-trimming mode, either long (bridge-linker) or ab (AB-linker) are acceptable options
 * --forward-linker: Set the forward linker to search for in the paired reads. Default is ACGCGATATCTTATCTGACT.
 * --reverse-linker: Set the reverse linker to search for in the paired reads. Default is AGTCAGATAAGATATCGCGT.
 * --ab-linker: Activates the AB-linker trimming mode instead of the default long-read linker mode.
 * --a-linker: Sets the A-linker sequence. Default is CTGCTGTCCG. Implies --ab-linker
 * --b-linker: Sets the B-linker sequence. Default is CTGCTGTCAT. Implies --ab-linker
-* --pp=[executable command]: Preprocess reads. Runs each of the passed FASTQ files through the executable script before trimming and alignment. Default is none
-* --macs-gsize=[value]: Set the genome size option for MACS2 (see MACS2 for how this option is set). Default is hs
+* --pp=[executable command]: Preprocess reads. Runs each of the passed FASTQ files through the executable script before trimming and alignment. Default is no preprocessing
+* --macs-gsize=[value]: Set the genome size option for MACS1 and MACS2 (see the MACS documentation). Default is hs
+* --keep-tmp: Don't delete temporary files when the alignment is finished
+
 
 
 ### Estimating the confidence estimates in each interaction (origami-analysis)
