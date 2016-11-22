@@ -288,7 +288,7 @@ linkertrimming() {
   fi
 
   echo "Aligning reads"
-  if [[ "$SKIP" == off || ! -e "$OUTPUTDIR/mapped_reads.bam" ]]; #&& $BINDIR/bowtie_align.sh $OUTPUTDIR $BOWTIEIDX $PARALLEL $SPLITNUM
+  if [[ "$SKIP" == "off" || ! -e "$OUTPUTDIR/mapped_reads.bam" ]]; #&& $BINDIR/bowtie_align.sh $OUTPUTDIR $BOWTIEIDX $PARALLEL $SPLITNUM
   then
 
     if [ $PARALLEL == "on" ];
@@ -478,8 +478,24 @@ fi
 
 verbose "Analyzing $LEFTREADS and $RIGHTREADS"
 
-verbose "Creating output directory"
-mkdir $OUTPUTDIR
+if [ ! -e "$OUTPUTDIR"];
+then
+  verbose "Creating output directory"
+  mkdir $OUTPUTDIR
+  
+  if [ $? -ne 0 ];
+  then
+    echo "Failed to create $OUTPUTDIR!"
+    exit 1
+  fi
+fi
+
+if [ ! -d "$OUTPUTDIR" ];
+then
+  echo "$OUTPUTDIR is not a directory!"
+  exit 1
+fi
+
 verbose "Creating temporary file directory"
 mkdir $OUTPUTDIR/tmp
 verbose "Creating logs directory"
