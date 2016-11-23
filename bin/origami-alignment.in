@@ -506,10 +506,12 @@ then
 fi
 
 ### unpack reads, filter reads, remove postfix
-if [ "$PARALLEL" = "yes" ];
+if [ "$PARALLEL" = "on" ];
 then
   dispatch "$CATFUNC $LEFTREADS | $PREPROCESSINGPOSTFIX | $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/leftreads"
   dispatch "$CATFUNC $RIGHTREADS | $PREPROCESSINGPOSTFIX | $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/rightreads"
+  
+  wait
 else
   verbosecmd "$CATFUNC $LEFTREADS | $PREPROCESSINGPOSTFIX | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/left_reads.fq"
   verbosecmd "$CATFUNC $RIGHTREADS | $PREPROCESSINGPOSTFIX | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/right_reads.fq"
