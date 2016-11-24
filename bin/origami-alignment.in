@@ -292,7 +292,7 @@ linkertrimming() {
   fi
 
   echo "Aligning reads"
-  if [[ "$SKIP" == off || ! -e "$OUTPUTDIR/mapped_reads.bam" ]]; #&& $BINDIR/bowtie_align.sh $OUTPUTDIR $BOWTIEIDX $PARALLEL $SPLITNUM
+  if [[ "$SKIP" == "off" || ! -e "$OUTPUTDIR/mapped_reads.bam" ]]; #&& $BINDIR/bowtie_align.sh $OUTPUTDIR $BOWTIEIDX $PARALLEL $SPLITNUM
   then
 
     if [ $PARALLEL == "on" ];
@@ -335,11 +335,13 @@ linkertrimming() {
   
       dispatch "cd $OUTPUTDIR/tmp && @SAMTOOLS@ sort -Obam -Trighttmp -n right_kept.bam > right_kept.sorted.bam"
     else
-      cd $OUTPUTDIR/tmp
-      dispatch "@SAMTOOLS@ sort -Obam -Tlefttmp -n left_kept.bam > left_kept.sorted.bam"
-    
-      dispatch "@SAMTOOLS@ sort -Obam -Trighttmp -n right_kept.bam > right_kept.sorted.bam"
-      cd ../..
+      (cd $OUTPUTDIR/tmp
+      @SAMTOOLS@ sort -Obam -Tlefttmp -n left_kept.bam > left_kept.sorted.bam
+      )
+      
+      (cd $OUTPUTDIR/tmp
+      @SAMTOOLS@ sort -Obam -Trighttmp -n right_kept.bam > right_kept.sorted.bam
+      )
     fi
   fi
 
@@ -469,10 +471,38 @@ fi
 
 echo "Launching origami..."
 
+if [ ! -e "$LEFTREADS" ];
+then
+  echo "Cannot find $LEFTREADS!"
+  exit 1
+fi
+
+if [ ! -e "$RIGHTREADS" ];
+then  
+  echo "Cannot find $RIGHTREADS!"
+  exit 1
+fi
+
 verbose "Analyzing $LEFTREADS and $RIGHTREADS"
 
-verbose "Creating output directory"
-mkdir $OUTPUTDIR
+if [ ! -e "$OUTPUTDIR"];
+then
+  verbose "Creating output directory"
+  mkdir $OUTPUTDIR
+  
+  if [ $? -ne 0 ];
+  then
+    echo "Failed to create $OUTPUTDIR!"
+    exit 1
+  fi
+fi
+
+if [ ! -d "$OUTPUTDIR" ];
+then
+  echo "$OUTPUTDIR is not a directory!"
+  exit 1
+fi
+
 verbose "Creating temporary file directory"
 mkdir $OUTPUTDIR/tmp
 verbose "Creating logs directory"
@@ -544,9 +574,10 @@ $SCRIPTDIR/remove-duplicates.pl $OUTPUTDIR/mapped_reads.bam | @SAMTOOLS@ view -S
 
 echo "Calling peaks"
 
+(
 cd $OUTPUTDIR
 dispatch "macs -t mapped_reads.bam -n macs1 -g $MACSGSIZE -f BAM --nomodel --nolambda -p 1e-9 --shiftsize 100"
-cd ..
+)
 
 dispatch "@MACS2@ callpeak -t $OUTPUTDIR/mapped_reads.bam -n macs2 -q 0.05 -g $MACSGSIZE --nomodel --extsize 100 --outdir $OUTPUTDIR"
 
