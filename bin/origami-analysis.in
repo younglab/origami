@@ -5,7 +5,6 @@ SCRIPTDIR=$BASEDIR/../scripts
 
 PEAKCOUNTFILE=raw-counts.out
 INTCOUNTFILE=raw-interactions.out
-TMPFILE=$RANDOM.peaks.bed
 TMPBAMPREFIX=bam$RANDOM.prefix
 BURNIN=100
 ITERATIONS=10000
@@ -156,6 +155,21 @@ READSFILE=$1
 INPUTFILE=$2
 PREFIX=$3
 
+if [ ! -e "$READSFILE" ];
+then
+  helpmenu "Error: cannot find BAM file $READSFILE"
+  exit 1
+fi
+
+if [ ! -e "$INPUTFILE" ];
+then
+  helpmenu "Error: cannot find peaks BED file $INPUTFILE"
+  exit 1
+fi
+
+TMPFILE=".$RANDOM.peaks.bed"
+
+
 if ([ $SLOPDIST -eq 0 ] && [ $SLOPGENOME != "null" ]) || ([ $SLOPDIST -gt 0 ] && [ $SLOPGENOME = "null" ])
 then
   helpmenu "Error: if specifying --slop-dist or --slop-genome, must specify the other"
@@ -165,7 +179,7 @@ fi
 
 echo "Identifying PET counts in peaks and interactions..."
 
-cut -f 1,2,3 $INPUTFILE | sort -k 1,1 -k 2,2n > $TMPFILE
+cut -f 1,2,3 $INPUTFILE | sort -k1,1 -k2,2n > $TMPFILE
 
 if [ $MERGEDIST -gt 0 ];
 then
