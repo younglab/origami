@@ -1,7 +1,5 @@
 0. Run autoconf (if installing from source)
-1. Run ./configure
+1. Run ./configure --prefix=/path/to/installation/directory
 2. Run make
-3. Copy mapped-reads-merge to bin folder
-4. Copy bin/ and scripts/ folder to desired location
-5. Set BINDIR in bin/origami-alignment.sh to path where the bin/ folder is located
-6. Set SCRIPTDIR in bin/origami-analysis.sh to path where the scripts/ folder is located
+3. Run make install
+
