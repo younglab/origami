@@ -167,7 +167,9 @@ then
   exit 1
 fi
 
+BAMPREFIX=${READSFILE%.bam}
 TMPFILE=".$RANDOM.peaks.bed"
+SORTEDREADSFILE="$BAMPREFIX.sorted.bam"
 
 
 if ([ $SLOPDIST -eq 0 ] && [ $SLOPGENOME != "null" ]) || ([ $SLOPDIST -gt 0 ] && [ $SLOPGENOME = "null" ])
@@ -199,6 +201,12 @@ fi
 if [ ! -e "$PREFIX-raw-counts.out" ];
 then
   @BEDTOOLSCOVERAGE@
+  
+  if [ $? -ne 0 ];
+  then
+    echo "Error in getting the PET counts per anchor, see error messages"
+    exit 1
+  fi
 fi
 
 if [ $ZSCOREFILTER != "no" ];
