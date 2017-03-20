@@ -12,7 +12,7 @@ die "Number of pairs has to be non-negative" unless $npairs > 0;
 
 my %pairs;
 
-open(B,"samtools view -h $bamfile") or die "Cannot read BAM file $bamfile: $!";
+open(B,"samtools view -h $bamfile |") or die "Cannot read BAM file $bamfile: $!";
 open(O,">","$tmpfile") or die "Cannot write to $tmpfile: $!";
 
 while(<B>) {
