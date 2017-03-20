@@ -184,7 +184,7 @@ echo "Identifying PET counts in peaks and interactions..."
 #cut -f 1,2,3 $INPUTFILE | sort -k1,1 -k2,2n > $TMPFILE
 
 $SCRIPTDIR/extract-sam-header.pl $SORTEDREADSFILE > names.txt
-cut -f 1-3 $INPUTFILE | bedtools sort > $TMPFILE
+cut -f 1-3 $INPUTFILE | bedtools sort -faidx names.txt > $TMPFILE
 
 if [ $MERGEDIST -gt 0 ];
 then
