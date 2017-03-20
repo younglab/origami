@@ -23,6 +23,7 @@ NOINTERCHROMOSOMAL=no
 USEDF=0
 USEGLM=no
 COUNTCAP=30
+DOWNSAMPLE=no
 
 
 helpmenu() {
@@ -48,7 +49,8 @@ helpmenu() {
   printf "%s\t%s\n" "--min-dist=[positive integer]" "Minimum intrachromsomal distance required between peaks (default consider all interactions)"
   printf "%s\t%s\n" "--max-dist=[positive integer]" "Maximum intrachromsomal distance required between peaks (default consider all interactions)"
   printf "%s\t%s\n" "--no-interchromosomal" "Do not consider any interchromsomal interactions"
-  printf "%s\t%s\n" "--count-cap=[count]" "") | column -t -s $'\t'
+  printf "%s\t%s\n" "--count-cap=[count]" ""
+  printf "%s\t%s\n" "--downsample=[number of PETs]" "Run analysis on downsampled BAM file to a specified number of PETs, must be non-negative") | column -t -s $'\t'
 
   printf "\n"
   printf "Distance estimation (ignored when --without-distance is used)\n"
@@ -63,7 +65,7 @@ helpmenu() {
 
 }
 
-TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter:,use-df:,assign-to-peaks,only-map-pets,join-nearby-peaks:,min-dist:,max-dist:,no-interchromosomal,use-glm,count-cap: -n 'origami' -- "$@"`
+TEMP=`getopt -o h -l iterations:,burn-in:,prune:,slop-dist:,slop-genome:,save-full-model,without-distance,peak-count-filter:,use-df:,assign-to-peaks,only-map-pets,join-nearby-peaks:,min-dist:,max-dist:,no-interchromosomal,use-glm,count-cap:,downsample: -n 'origami' -- "$@"`
 
 
 eval set -- "$TEMP"
@@ -140,6 +142,15 @@ while [ $# -ge 1 ]; do
       COUNTCAP="$2"
       shift
       ;;
+    --downsample)
+      DOWNSAMPLE="$2"
+      shift
+      if [ "$DOWNSAMPLE" -lt 1 ];
+      then
+        helpmenu "Error: Downsampling must be given a positive integer!"
+        exit 1
+      fi
+      ;;
 	esac
 	shift
 done
@@ -178,10 +189,27 @@ then
   exit 1
 fi
 
+if [ "$DOWNSAMPLE" != "no" ];
+then
+  echo "Downsampling BAM file"
+  TMPBAMFILE=".$RANDOM.downsample.bam"
+  OUTPUTBAMFILE="$PREFIX.downsample.bam"
+  OUTPUTSORTEDBAMFILE="$PREFIX.downsample.sorted.bam"
+  $SCRIPTDIR/downsample-bam-file.pl $READSFILE $DOWNSAMPLE $TMPBAMFILE $OUTPUTBAMFILE $OUTPUTSORTEDBAMFILE
+  
+  if [ $? -ne 0 ];
+  then
+    echo "Error: failed to downsample BAM file, see error messages"
+    exit 1
+  fi
+  
+  READSFILE=$OUTPUTBAMFILE
+  SORTEDREADSFILE=$OUTPUTSORTEDBAMFILE
+fi
+
 
 echo "Identifying PET counts in peaks and interactions..."
 
-#cut -f 1,2,3 $INPUTFILE | sort -k1,1 -k2,2n > $TMPFILE
 
 $SCRIPTDIR/extract-sam-header.pl $SORTEDREADSFILE > names.txt
 cut -f 1-3 $INPUTFILE | bedtools sort -faidx names.txt > $TMPFILE
