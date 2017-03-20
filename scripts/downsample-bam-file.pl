@@ -3,9 +3,9 @@
 use strict;
 use List::Util qw/shuffle/;
 
-die "Syntax: <BAM file> <number of pairs> <tmp file> <output file> <sorted output file>" unless scalar(@ARGV)>=5;
+die "Syntax: <BAM file> <number of pairs> <tmp file> " unless scalar(@ARGV)>=3;
 
-my ($bamfile,$npairs,$tmpfile,$outputfile,$sortedoutputfile) = @ARGV;
+my ($bamfile,$npairs,$tmpfile) = @ARGV;
 
 
 die "Cannot find $bamfile" unless -e $bamfile;
@@ -44,14 +44,4 @@ for( my $i = 0; $i < $npairs; $i++ ) {
 }
 
 close(O);
-
-my $output = `samtools view -Sb $tmpfile > $outputfile`;
-
-die "Failed to covert $tmpfile into $outputfile: $output" unless $? == 0;
-
-unlink($tmpfile);
-
-my $output = `samtools sort -@8 -Ttmp $outputfile > $sortedoutputfile`;
-
-die "Failed to sort BAM file: $output" unless $? == 0;
 

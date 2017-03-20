@@ -195,11 +195,29 @@ then
   TMPBAMFILE=".$RANDOM.downsample.bam"
   OUTPUTBAMFILE="$PREFIX.downsample.bam"
   OUTPUTSORTEDBAMFILE="$PREFIX.downsample.sorted.bam"
-  $SCRIPTDIR/downsample-bam-file.pl $READSFILE $DOWNSAMPLE $TMPBAMFILE $OUTPUTBAMFILE $OUTPUTSORTEDBAMFILE
+  $SCRIPTDIR/downsample-bam-file.pl $READSFILE $DOWNSAMPLE $TMPBAMFILE
   
   if [ $? -ne 0 ];
   then
     echo "Error: failed to downsample BAM file, see error messages"
+    exit 1
+  fi
+  
+  samtools view -Sb $TMPBAMFILE > $OUTPUTBAMFILE
+  
+  if [ $? -ne 0 ];
+  then
+    echo "Error: could not generate downsampled BAM file, see error messages"
+    exit
+  fi
+
+  rm $TMPBAMFILE ## cleanup
+  
+  samtools sort -@8 -Ttmp $OUTPUTBAMFILE > $OUTPUTSORTEDBAMFILE
+  
+  if [ $? -ne 0 ];
+  then
+    echo "Error: failed to sort downsampled BAM file, see error messages"
     exit 1
   fi
   
