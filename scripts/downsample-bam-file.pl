@@ -36,11 +36,11 @@ close(B);
 
 die "No paired-end reads found in BAM file!" if scalar(keys(%pairs))==0;
 
+my @keypairs = keys(%pairs);
+my $totalpairs = scalar(@keypairs);
 for( my $i = 0; $i < $npairs; $i++ ) {
-  my $random_key = (keys(%pairs))[rand keys(%pairs)];
-  my @pets = @{$pairs{$random_key}};
-  
-  print O for(@pets);
+  my $random_key = (@keypairs)[rand $totalpairs];
+  print O for(@{$pairs{$random_key}});
 }
 
 close(O);
