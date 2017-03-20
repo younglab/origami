@@ -85,7 +85,7 @@ if test `bedtools --version | cut -d ' ' -f 2 | cut -d '.' -f 2` -lt 24
 then
   BEDTOOLSCOVERAGE="$BEDTOOLS coverage -counts -abam \$READSFILE -b \$TMPFILE > \$PREFIX-raw-counts.out"
 else
-  BEDTOOLSCOVERAGE="$BEDTOOLS coverage -sorted -counts -a \$TMPFILE -b \$SORTEDREADSFILE  > \$PREFIX-raw-counts.out"
+  BEDTOOLSCOVERAGE="$BEDTOOLS coverage -g names.txt -sorted -counts -a \$TMPFILE -b \$SORTEDREADSFILE  > \$PREFIX-raw-counts.out"
 fi
 
 AC_SUBST([BEDTOOLSCOVERAGE])
