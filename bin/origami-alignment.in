@@ -485,7 +485,7 @@ fi
 
 verbose "Analyzing $LEFTREADS and $RIGHTREADS"
 
-if [ ! -e "$OUTPUTDIR"];
+if [ ! -e "$OUTPUTDIR" ];
 then
   verbose "Creating output directory"
   mkdir $OUTPUTDIR
