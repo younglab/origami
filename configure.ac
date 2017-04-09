@@ -90,9 +90,10 @@ fi
 
 AC_SUBST([BEDTOOLSCOVERAGE])
 
-#AC_MSG_NOTICE([Checking for C++ libraries needed by origami])
-#AC_CHECK_HEADER([api/BamReader.h])
-#AC_CHECK_HEADER([api/BamWriter.h])
+AC_MSG_NOTICE([Checking for C++ libraries needed by origami])
+AC_CHECK_HEADERS([api/BamReader.h api/BamWriter.h],[],
+	[ AC_MSG_ERROR([Cannot find one or more Bamtools API header files, please set -I to the path to the Bamtools header files within CPPFLAGS=]) ])
+
 
 AC_MSG_NOTICE([Checking for R libraries needed by origami])
 R_LIBRARY_TEST([GenomicRanges])

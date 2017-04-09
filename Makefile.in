@@ -1,5 +1,4 @@
 BAMLIBS = -lbamtools
-BAMINC = -I/usr/local/include/bamtools
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 bindir=@bindir@
@@ -8,7 +7,7 @@ scriptdir=${prefix}/scripts
 all: bamexes
 
 bamexes:
-	cd src && g++ $(BAMINC) -c mapped-reads-merge.cpp
+	cd src && g++ @CPPFLAGS@ -c mapped-reads-merge.cpp
 	cd src && g++ -o mapped-reads-merge mapped-reads-merge.o $(BAMLIBS)
 
 clean:
