@@ -108,13 +108,15 @@ estimate.global.bayesian.mixture <- function(ints,depth,inttable,N=1100,burnin=1
     g1 <- pp*dpois(counts,lambda1 + lambdad1)
     g2 <- (1-pp) * dpois(counts,lambda0 + lambdad0)
     
+    sl1 <- lambda1 + lambdad1
+    
     vp <- g1/rowSums(cbind(g1,g2)) 
     
     # Sometimes the counts value in dpois is so extreme the loss of precision causes the value to be 0, need to correct for this
     # if in this case the counts value is closer to lambda1 than lambda0, give it a probability of .999, otherwise .001
     if(any(is.na(vp))) {
       b<- is.na(vp)
-      vp[b] <- ifelse(counts[b]>=lambda1,.999,.001)
+      vp[b] <- ifelse(counts[b]>=sl1[b],.999,.001)
     }
     
     vz <- rbinom(S,1,vp)
