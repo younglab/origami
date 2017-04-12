@@ -621,9 +621,21 @@ wait #finish all remaining processes from read trimming
 echo "Filtering out duplicated PETs"
 $SCRIPTDIR/remove-duplicates.pl $OUTPUTDIR/mapped_reads.bam | @SAMTOOLS@ view -Sb > $OUTPUTDIR/mapped_reads.rmdup.bam
 
+if [ $? -ne 0 ];
+then
+  echo "Failed to remove PCR duplicates, see error messages"
+  exit 1
+fi
+
 (cd $OUTPUTDIR
   samtools sort -@8 -Ttmp mapped_reads.rmdup.bam > mapped_reads.rmdup.sorted.bam
 )
+
+if [ ! -e "$OUTPUTDIR/mapped_reads.rmdup.sorted.bam" ]
+then
+  echo "Failed to sort BAM file correctly, see error messages"
+  exit 1
+fi
 
 echo "Calling peaks"
 
@@ -632,9 +644,25 @@ cd $OUTPUTDIR
 dispatch "macs -t mapped_reads.bam -n macs1 -g $MACSGSIZE -f BAM --nomodel --nolambda -p 1e-9 --shiftsize 100"
 )
 
+
 dispatch "@MACS2@ callpeak -t $OUTPUTDIR/mapped_reads.bam -n macs2 -q 0.05 -g $MACSGSIZE --nomodel --extsize 100 --outdir $OUTPUTDIR"
 
 wait
+
+if [ ! -e "$OUTPUTDIR/macs1_peaks.bed" ]
+then
+  echo "Failed to call MACS1 peaks correctly, see error messages"
+  exit 1
+fi
+
+
+if [ ! -e "$OUTPUTDIR/macs2_peaks.narrowPeak" ];
+then
+  echo "Failed to call MACS2 peaks correctly, see error messages"
+  exit 1
+fi
+
+
 
 if [ $CALLBROADPEAK == "yes" ]
 then
