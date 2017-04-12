@@ -431,10 +431,35 @@ while [ $# -ge 1 ]; do
 		  ;;
 		--pp)
 	    PREPROCESSINGCMD="$2"
+	    
+	    if [ ! -e "$PREPROCESSESINGCMD" ]
+	    then
+	      helpmenu "Error: Cannot find pre-processing executable file $PREPROCESSINGCMD"
+	      exit 1
+	    fi
+	     
+	    if [ ! -x "$PREPROCESSINGCMD" ]
+	    then
+	      helpmenu "Error: you do not have permission to execute file $PREPROCESSINGCMD"
+	      exit 1
+	    fi
+	    
 	    shift
 	    ;;
 	  -m|--min-len)
 	    MINREADLENGTH="$2"
+	    
+	    if [ "$MINREADLENGTH" -lt 1 ];
+	    then
+	      helpmenu "Error: need positive minimum read length"
+	      exit 1
+	    fi
+	    
+	    if [ "$MINREADLENGTH" -lt 15 ];
+	    then
+	      echo "WARNING: Minimum read length is set to less than 15 bp, at least 15 bp minumum is recommended for optimal performance"
+	    fi
+	    
 	    shift
 	    ;;
 	  --macs-gsize)
@@ -542,9 +567,34 @@ then
   dispatch "$CATFUNC $RIGHTREADS | $PREPROCESSINGPOSTFIX | $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/rightreads"
   
   wait
+  
+  if [ ! -e "$OUTPUTDIR/tmp/leftreadsaa" ] ## should broaden error handling at some point
+  then
+    echo "Failed to unpack $LEFTREADS, see error messages"
+    exit 1
+  fi
+  
+  if [ ! -e "$OUTPUTDIR/tmp/rightreadsaa" ];
+  then
+    echo "Failed to unpack $RIGHTREADS, see error messages"
+    exit 1
+  fi
 else
-  verbosecmd "$CATFUNC $LEFTREADS | $PREPROCESSINGPOSTFIX | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/left_reads.fq"
-  verbosecmd "$CATFUNC $RIGHTREADS | $PREPROCESSINGPOSTFIX | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/right_reads.fq"
+  $CATFUNC $LEFTREADS | $PREPROCESSINGPOSTFIX | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/left_reads.fq
+  
+  if [ $? -ne 0 ]
+  then
+    echo "Failed to unpack FASTQ file $LEFTREADS, see error messages"
+    exit 1
+  fi
+  
+  $CATFUNC $RIGHTREADS | $PREPROCESSINGPOSTFIX | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/right_reads.fq
+  
+  if [ $? -ne 0 ]
+  then
+    echo "Failed to unpack FASTQ file $RIGHTREADS, see error messages"
+    exit 1
+  fi
 fi
 
 if [[ "$SKIP" == "off" || ! -e "$OUTPUTDIR/mapped_reads.bam" ]];
