@@ -116,11 +116,6 @@ linkertrimming() {
   
   if [ $PARALLEL = "on" ]
   then
-    #dispatch "$CATFUNC $LEFTREADS | $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/leftreads"
-    #dispatch "$CATFUNC $RIGHTREADS | $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/rightreads"
-  
-    wait 
-
     ## One assumption here is that split names the files in the same linear order -- maybe this should be done differently?
     LEFTREADS=($(ls $OUTPUTDIR/tmp/leftreads*))
     RIGHTREADS=($(ls $OUTPUTDIR/tmp/rightreads*))
@@ -192,12 +187,6 @@ linkertrimming() {
     rm $OUTPUTDIR/tmp/leftreads* $OUTPUTDIR/tmp/rightreads*
 
   else
-
-    #verbosecmd "$CATFUNC $LEFTREADS | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/left_reads.fq"
-    #verbosecmd "$CATFUNC $RIGHTREADS | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/right_reads.fq"
-
-    wait
-    
     if [ $USEABLINKER = "yes" ]
     then
 
@@ -245,6 +234,12 @@ linkertrimming() {
       wait
     fi
 
+  fi
+  
+  if [ ! -e "$OUTPUTDIR/tmp/left_kept.fq" ] || [ ! -e "$OUTPUTDIR/tmp/right_kept.fq" ]
+  then
+    echo "Read trimming failed, see error messages"
+    exit 1
   fi
     
   rm $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
@@ -432,7 +427,7 @@ while [ $# -ge 1 ]; do
 		--pp)
 	    PREPROCESSINGCMD="$2"
 	    
-	    if [ ! -e "$PREPROCESSESINGCMD" ]
+	    if [ ! -e "$PREPROCESSINGCMD" ]
 	    then
 	      helpmenu "Error: Cannot find pre-processing executable file $PREPROCESSINGCMD"
 	      exit 1
@@ -544,8 +539,16 @@ fi
 FILESUFFIX=${LEFTREADS##*.}
 
 case "$FILESUFFIX" in
+  tgz)
+    CATFUNC="tar --strip-components=5 -xzOf"
+    ;;
   gz)
-    CATFUNC=zcat
+    if [[ "$LEFTREADS" =~ ".tar.gz" ]]
+    then
+      CATFUNC="tar --strip-components=5 -xzOf"
+    else
+      CATFUNC=zcat
+    fi
     ;;
   bz2)
     CATFUNC=bzcat
@@ -563,8 +566,8 @@ fi
 ### unpack reads, filter reads, remove postfix
 if [ "$PARALLEL" = "on" ];
 then
-  dispatch "$CATFUNC $LEFTREADS | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/leftreads"
-  dispatch "$CATFUNC $RIGHTREADS | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/rightreads"
+  dispatch "eval $CATFUNC $LEFTREADS | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/leftreads"
+  dispatch "eval $CATFUNC $RIGHTREADS | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/rightreads"
   
   wait
   
@@ -580,7 +583,7 @@ then
     exit 1
   fi
 else
-  $CATFUNC $LEFTREADS | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD > $OUTPUTDIR/tmp/left_reads.fq
+  eval $CATFUNC $LEFTREADS | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD > $OUTPUTDIR/tmp/left_reads.fq
   
   if [ $? -ne 0 ]
   then
@@ -588,7 +591,7 @@ else
     exit 1
   fi
   
-  $CATFUNC $RIGHTREADS | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD > $OUTPUTDIR/tmp/right_reads.fq
+  eval $CATFUNC $RIGHTREADS | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD > $OUTPUTDIR/tmp/right_reads.fq
   
   if [ $? -ne 0 ]
   then
