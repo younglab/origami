@@ -563,8 +563,8 @@ fi
 ### unpack reads, filter reads, remove postfix
 if [ "$PARALLEL" = "on" ];
 then
-  dispatch "$CATFUNC $LEFTREADS | eval $PREPROCESSINGPOSTFIX | $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/leftreads"
-  dispatch "$CATFUNC $RIGHTREADS | eval $PREPROCESSINGPOSTFIX | $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/rightreads"
+  dispatch "$CATFUNC $LEFTREADS | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/leftreads"
+  dispatch "$CATFUNC $RIGHTREADS | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/rightreads"
   
   wait
   
@@ -580,7 +580,7 @@ then
     exit 1
   fi
 else
-  $CATFUNC $LEFTREADS | eval $PREPROCESSINGPOSTFIX | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/left_reads.fq
+  $CATFUNC $LEFTREADS | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD > $OUTPUTDIR/tmp/left_reads.fq
   
   if [ $? -ne 0 ]
   then
@@ -588,7 +588,7 @@ else
     exit 1
   fi
   
-  $CATFUNC $RIGHTREADS | eval $PREPROCESSINGPOSTFIX | $PREPROCESSINGCMD > $OUTPUTDIR/tmp/right_reads.fq
+  $CATFUNC $RIGHTREADS | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD > $OUTPUTDIR/tmp/right_reads.fq
   
   if [ $? -ne 0 ]
   then
