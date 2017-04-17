@@ -218,6 +218,9 @@ linkertrimming() {
       dispatch @CUTADAPTOR@ -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $ABPARAM -o $OUTPUTDIR/tmp/l_diff_ab.fq -p $OUTPUTDIR/tmp/r_diff_ab.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
 
       dispatch @CUTADAPTOR@ -n 3 --overlap 10 -e 0 --discard-untrimmed -m $MINREADLENGTH $BAPARAM -o $OUTPUTDIR/tmp/l_diff_ba.fq -p $OUTPUTDIR/tmp/r_diff_ba.fq  $OUTPUTDIR/tmp/left_reads.fq $OUTPUTDIR/tmp/right_reads.fq
+      
+      dispatch @CUTADAPTOR@ -n 3 --overlap 10 -e 0 --discard-trimmed -m $MINREADLENGTH $NPARAM -o $OUTPUTDIR/tmp/l_neither.fq -p $OUTPUTDIR/tmp/r_neither.fq  ${LEFTREADS[$i]} ${RIGHTREADS[$i]}
+
 
       dispatch "cat $OUTPUTDIR/tmp/l_same_aa.fq $OUTPUTDIR/tmp/l_same_bb.fq > $OUTPUTDIR/tmp/left_kept.fq"
       
@@ -226,6 +229,18 @@ linkertrimming() {
       dispatch "cat $OUTPUTDIR/tmp/l_diff_ab.fq $OUTPUTDIR/tmp/l_diff_ba.fq > $OUTPUTDIR/tmp/left_chimeric.fq"
       
       dispatch "cat $OUTPUTDIR/tmp/r_diff_ab.fq $OUTPUTDIR/tmp/r_diff_ba.fq > $OUTPUTDIR/tmp/right_chimeric.fq"
+      
+      dispatch "cat $OUTPUTDIR/tmp/l_neither.fq > $OUTPUTDIR/tmp/left_untrimmed.fq"
+      
+      dispatch "cat $OUTPUTDIR/tmp/r_neither.fq > $OUTPUTDIR/tmp/right_untrimmed.fq"
+      
+      $STATCMD $LOGFILERUNNING ablinkeraa $OUTPUTDIR/tmp/l_same_aa.fq
+      $STATCMD $LOGFILERUNNING ablinkerbb $OUTPUTDIR/tmp/l_same_bb.fq
+      $STATCMD $LOGFILERUNNING ablinkerab $OUTPUTDIR/tmp/l_diff_ab.fq $OUTPUTDIR/tmp/l_diff_ba.fq
+      $STATCMD $LOGFILERUNNING ablinkernottrimmed $OUTPUTDIR/tmp/left_untrimmed.fq
+
+
+
 
     else
 
@@ -335,11 +350,15 @@ linkertrimming() {
       dispatch "rm $OUTPUTDIR/tmp/leftkept* $OUTPUTDIR/tmp/rightkept*"
       wait
     else
-      dispatch "@BOWTIE@ $BOWTIEOPT -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/left_kept.fq > $OUTPUTDIR/tmp/left_kept.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/left_kept.sam > $OUTPUTDIR/tmp/left_kept.bam; rm $OUTPUTDIR/tmp/left_kept.sam"
-      dispatch "@BOWTIE@ $BOWTIEOPT -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/right_kept.fq > $OUTPUTDIR/tmp/right_kept.sam; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/right_kept.sam > $OUTPUTDIR/tmp/right_kept.bam; rm $OUTPUTDIR/tmp/right_kept.sam"
+      dispatch "@BOWTIE@ $BOWTIEOPT -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/left_kept.fq > $OUTPUTDIR/tmp/left_kept.sam 2>$OUTPUTDIR/logs/first_read_alignment.txt; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/left_kept.sam > $OUTPUTDIR/tmp/left_kept.bam; rm $OUTPUTDIR/tmp/left_kept.sam"
+      dispatch "@BOWTIE@ $BOWTIEOPT -n 1 -m 1 -p 6 --sam $BOWTIEIDX $OUTPUTDIR/tmp/right_kept.fq > $OUTPUTDIR/tmp/right_kept.sam 2>$OUTPUTDIR/logs/second_read_alignment.txt; @SAMTOOLS@ view -Sb $OUTPUTDIR/tmp/right_kept.sam > $OUTPUTDIR/tmp/right_kept.bam; rm $OUTPUTDIR/tmp/right_kept.sam"
 
       wait
     fi
+    
+    $STATCMD $LOGFILERUNNING bowtiefirstread $OUTPUTDIR/logs/first_read_alignment.txt
+    $STATCMD $LOGFILERUNNING bowtiesecondread $OUTPUTDIR/logs/second_read_alignment.txt
+
 
 
     if [ $PARALLEL = "on" ];
@@ -724,6 +743,7 @@ then
 fi
 
 
+### generate final alignment report
 $STATCMD $LOGFILERUNNING final $LOGFILE
 
 if [[ "$KEEPTMP" == "no" ]];
