@@ -2,7 +2,6 @@
 
 use strict;
 use Switch;
-    use Fcntl qw(:flock);
 
 die "Not enough arguments" unless scalar(@ARGV)>=3;
 
@@ -10,46 +9,23 @@ my ($statfile,$param,@args) = @ARGV;
 
 my %stats;
 
-my $stattypes = [
-  ["Origami version","origamiver"],
-  ["Date and time of run","date"],
-  ["Command line arguments","cmdline"],
-  ["First read files","firstreadfiles"],
-  ["Second read files","secondreadfiles"],
-  ["Initial number of PETs","initialpets"],
-  ["Number of PETs after initial processing","procpets"],
-  ["Linker-trimming mode","mode"],
-  #["firstreadbridgetrimmed","Number of PETs with bridge linker"]
-];
-
-for my $ref (@{$stattypes}) {
-  $stats{$ref->[1]} = [$ref->[0],""];
-}
-
 unless( ! -e $statfile ) {
   open(my $sh,"<","$statfile") or die;
-  flock($sh,LOCK_EX) or die "Could not acquire lock on $statfile: $!";
 
   while(<$sh>) {
     chomp;
     my ($opt,$val) = split /: /;
     
-    for my $ref (@{$stattypes}) {
-      if($ref->[0] eq $opt) {
-        $stats{$ref->[1]}->[1] = $val;
-        last; ## right now, silently ignore anything it doesn't understand
-      }
-    }
+    $stats{$opt} = $val;
   }
   
-  flock($sh,LOCK_UN);
   close($sh);
 }
 
 switch($param) {
-  case ["origamiver","date","cmdline","mode"] { $stats{$param}->[1] = join(" ",@args); }
-  case ["firstreadfiles","secondreadfiles"] { $stats{$param}->[1] = join(",",@args); }
-  case ["initialpets","procpets"] { 
+  case ["origamiver","date","cmdline","mode"] { $stats{$param} = join(" ",@args); }
+  case ["firstreadfiles","secondreadfiles"] { $stats{$param} = join(",",@args); }
+  case ["initialpets","procpets","bridgewithlinker","bridgewithoutlinker","macs1peaks","macs2peaks"] { 
       my $nlines = 0;
       if($args[0] eq "-" ) {
         while(<STDIN>) {
@@ -63,15 +39,57 @@ switch($param) {
           close(F);
         }
       }
-      $stats{$param}->[1] = $nlines/4;
+      $stats{$param} = $nlines/4;
     }
+  case "final" {
+    open(O,">","$args[0]") or die "Cannot write final report to $args[0]: $!";
+    
+    print O <<END;
+Run report for origami alignment
+================================
+
+Origami version: $stats{"origamiver"}
+Date and time of start of run: $stats{"date"}
+Command arguments used: $stats{"cmdline"}
+First read files: $stats{"firstreadfiles"}
+Second read files: $stats{"secondreadfiles"}
+
+Initial number of PETs: $stats{"initialpets"}
+Number of PETs after pre-processing: $stats{"procpets"}
+
+Linker-trimming run mode: $stats{"mode"}
+END
+  
+    switch($stats{"mode"}) {
+      case "bridge-linker" { 
+        print O<<END;
+Number of PETs with bridge-linker: $stats{"bridgewithlinker"}
+Number of PETs without bridge-linker: $stats{"bridgewithoutlinker"}
+END
+        }
+      case "AB-linker" { }
+    }
+
+    print O<<END;
+    
+Number of MACS1 peaks called: $stats{"macs1peaks"}
+Number of MACS2 peaks called: $stats{"macs2peaks"}
+END
+    close(O);
+  }
 }
 
-open(O,">","$statfile") or die "Cannot write to $statfile: $!";
-
-for my $ref (@{$stattypes}) {
-  my $opt = $ref->[1];
-  print O "$stats{$opt}->[0]: $stats{$opt}->[1]\n";
+unless($param eq "final") {
+  open(S,">","$statfile") or die "Cannot update stat file $statfile: $!";
+  
+  for my $key (keys(%stats)) {
+    print S "$key: $stats{$key}\n";
+  }
+  
+  close(S);
 }
 
-close(O);
+
+
+
+
