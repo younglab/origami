@@ -115,16 +115,16 @@ linkertrimming() {
   case $USEABLINKER in
     yes)
       echo "Running in AB-linker trimming mode"
-      $STATCMD $LOGFILE mode AB-linker
+      $STATCMD $LOGFILERUNNING mode AB-linker
       ;;
     no)
       echo "Running in long-linker trimming mode"
-      $STATCMD $LOGFILE mode bridge-linker
+      $STATCMD $LOGFILERUNNING mode bridge-linker
       ;;
     *)
       ## this shouldn't get here, but in case it does default to long-linker mode
       echo "Running in long-linker trimming mode"
-      $STATCMD $LOGFILE mode bridge-linker
+      $STATCMD $LOGFILERUNNING mode bridge-linker
       ;;
   esac
   
@@ -246,6 +246,10 @@ linkertrimming() {
       dispatch "cat $OUTPUTDIR/tmp/r_nt2.fq > $OUTPUTDIR/tmp/right_untrimmed.fq"  
 
       wait
+      
+      $STATCMD $LOGFILERUNNING bridgewithlinker $OUTPUTDIR/tmp/left_kept.fq
+      $STATCMD $LOGFILERUNNING bridgewithoutlinker $OUTPUTDIR/tmp/left_untrimmed.fq
+
     fi
 
   fi
@@ -554,15 +558,16 @@ verbose "Creating logs directory"
 mkdir $OUTPUTDIR/logs
 
 ## update output file targets
-LOGFILE="$OUTPUTDIR/logs/.alignment-report.txt"
+LOGFILERUNNING="$OUTPUTDIR/logs/.report-info.txt"
+LOGFILE="$OUTPUTDIR/logs/alignment-report.txt"
 
 #echo "Running origami with the following command line: $ORIGINALCMD" > $OUTPUTDIR/logs/alignment-execution.txt
 
-$STATCMD $LOGFILE origamiver $VERSIONSTRING
-$STATCMD $LOGFILE date $(date)
-$STATCMD $LOGFILE cmdline $ORIGINALCMD
-$STATCMD $LOGFILE firstreadfiles $LEFTREADS
-$STATCMD $LOGFILE secondreadfiles $RIGHTREADS
+$STATCMD $LOGFILERUNNING origamiver $VERSIONSTRING
+$STATCMD $LOGFILERUNNING date $(date)
+$STATCMD $LOGFILERUNNING cmdline $ORIGINALCMD
+$STATCMD $LOGFILERUNNING firstreadfiles $LEFTREADS
+$STATCMD $LOGFILERUNNING secondreadfiles $RIGHTREADS
 
 
 if [[ "$VERBOSE" != "on" ]] && [[ "$PARALLEL" == "on" ]];
@@ -601,7 +606,7 @@ fi
 ### unpack reads, filter reads, remove postfix
 if [ "$PARALLEL" = "on" ];
 then
-  dispatch "eval $CATFUNC $LEFTREADS | $STATCMD $LOGFILE initialpets - | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/leftreads"
+  dispatch "eval $CATFUNC $LEFTREADS | $STATCMD $LOGFILERUNNING initialpets - | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/leftreads"
   dispatch "eval $CATFUNC $RIGHTREADS | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/rightreads"
   
   wait
@@ -618,9 +623,9 @@ then
     exit 1
   fi
   
-  $STATCMD $LOGFILE procpets $OUTPUTDIR/tmp/leftreads*
+  $STATCMD $LOGFILERUNNING procpets $OUTPUTDIR/tmp/leftreads*
 else
-  eval $CATFUNC $LEFTREADS | $STATCMD $LOGFILE initialpets - | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD  > $OUTPUTDIR/tmp/left_reads.fq
+  eval $CATFUNC $LEFTREADS | $STATCMD $LOGFILERUNNING initialpets - | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD  > $OUTPUTDIR/tmp/left_reads.fq
   
   if [ $? -ne 0 ]
   then
@@ -628,7 +633,7 @@ else
     exit 1
   fi
   
-  $STATCMD $LOGFILE procpets $OUTPUTDIR/tmp/left_reads.fq
+  $STATCMD $LOGFILERUNNING procpets $OUTPUTDIR/tmp/left_reads.fq
   
   eval $CATFUNC $RIGHTREADS | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD > $OUTPUTDIR/tmp/right_reads.fq
   
@@ -704,6 +709,9 @@ then
   exit 1
 fi
 
+$STATCMD $LOGFILERUNNING macs1peaks $OUTPUTDIR/macs1_peaks.bed
+$STATCMD $LOGFILERUNNING macs2peaks $OUTPUTDIR/macs2_peaks.narrowPeak
+
 
 
 if [ $CALLBROADPEAK == "yes" ]
@@ -715,13 +723,14 @@ then
 
 fi
 
+
+$STATCMD $LOGFILERUNNING final $LOGFILE
+
 if [[ "$KEEPTMP" == "no" ]];
 then
   echo "Cleaning up temporary directory"
   rm -r $OUTPUTDIR/tmp
+  rm $LOGFILERUNNING
 fi
-
-## move to make more visible
-mv $LOGFILE $OUTPUTDIR/logs/alignment-report.txt
 
 echo "Done"
