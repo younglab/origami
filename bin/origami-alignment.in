@@ -673,7 +673,7 @@ then
       linkertrimming "yes"
     ;;
     *)
-      helpmenu "Error: invalid run mode entered, must be one of: long, ab, or hichip"
+      helpmenu "Error: invalid run mode entered, must be one of: long or ab"
       exit 1
     ;;
   esac
