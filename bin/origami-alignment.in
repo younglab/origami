@@ -102,7 +102,7 @@ helpmenu() {
   printf " %s\t%s\n" "--callbroadpeak" "calls broad peaks via macs2 and generates merged peak file"
   printf "Miscellaneous options:\t \n"
   printf " %s\t%s\n" "--pp=[executable]" "pipe reads through executable STDIN before writing them to temporary files (must be executable, default none)"
-  printf " %s\t%s\n" "--keep-postfix" "do not automatically trim /1 and /2 postfix sequences"
+  #printf " %s\t%s\n" "--keep-postfix" "do not automatically trim /1 and /2 postfix sequences"
   printf " %s\t%s\n" "--keep-tmp" "don't delete the temporary files") | column -t -s $'\t'
   
 }
@@ -625,8 +625,8 @@ fi
 ### unpack reads, filter reads, remove postfix
 if [ "$PARALLEL" = "on" ];
 then
-  dispatch "eval $CATFUNC $LEFTREADS | $STATCMD $LOGFILERUNNING initialpets - | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/leftreads"
-  dispatch "eval $CATFUNC $RIGHTREADS | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/rightreads"
+  dispatch "eval $CATFUNC $LEFTREADS | $STATCMD $LOGFILERUNNING initialpets - | eval $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/leftreads"
+  dispatch "eval $CATFUNC $RIGHTREADS |  eval $PREPROCESSINGCMD | split -l $SPLITNUM - $OUTPUTDIR/tmp/rightreads"
   
   wait
   
@@ -644,7 +644,7 @@ then
   
   $STATCMD $LOGFILERUNNING procpets $OUTPUTDIR/tmp/leftreads*
 else
-  eval $CATFUNC $LEFTREADS | $STATCMD $LOGFILERUNNING initialpets - | eval $PREPROCESSINGPOSTFIX | eval $PREPROCESSINGCMD  > $OUTPUTDIR/tmp/left_reads.fq
+  eval $CATFUNC $LEFTREADS | $STATCMD $LOGFILERUNNING initialpets - | eval $PREPROCESSINGCMD  > $OUTPUTDIR/tmp/left_reads.fq
   
   if [ $? -ne 0 ]
   then
