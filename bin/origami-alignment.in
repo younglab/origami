@@ -9,6 +9,7 @@ VERSIONSTRING="v1.1-alpha-3"
 
 ### command line options
 OUTPUTDIR=output
+OUTPUTDIRFULLPATH=output
 VERBOSE=off
 SKIP=on
 PARALLEL=off
@@ -63,7 +64,7 @@ verbosecmd() {
 dispatch() {
   if [ "$PARALLEL" = on ]
   then
-    bsub -K -q $LSFQUEUE -J origami -o $OUTPUTDIR/logs/cluster_log.txt "$@" &
+    bsub -K -q $LSFQUEUE -J origami -o $OUTPUTDIRFULLPATH/logs/cluster_log.txt "$@" &
   else
     eval "$@"
   fi
@@ -571,6 +572,8 @@ then
   exit 1
 fi
 
+OUTPUTDIRFULLPATH=$(cd $OUTPUTDIR; pwd -P)
+
 verbose "Creating temporary file directory"
 mkdir $OUTPUTDIR/tmp
 verbose "Creating logs directory"
@@ -749,7 +752,7 @@ $STATCMD $LOGFILERUNNING final $LOGFILE
 if [[ "$KEEPTMP" == "no" ]];
 then
   echo "Cleaning up temporary directory"
-  rm -r $OUTPUTDIR/tmp
+  rm -r $OUTPUTDIRFULLPATH/tmp
   rm $LOGFILERUNNING
 fi
 
