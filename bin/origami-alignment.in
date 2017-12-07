@@ -710,13 +710,12 @@ echo "Calling peaks"
 
 (
 cd $OUTPUTDIR
-dispatch "macs -t mapped_reads.bam -n macs1 -g $MACSGSIZE -f BAM --nomodel --nolambda -p 1e-9 --shiftsize 100"
+macs -t mapped_reads.bam -n macs1 -g $MACSGSIZE -f BAM --nomodel --nolambda -p 1e-9 --shiftsize 100
 )
 
 
-dispatch "@MACS2@ callpeak -t $OUTPUTDIR/mapped_reads.bam -n macs2 -q 0.05 -g $MACSGSIZE --nomodel --extsize 100 --outdir $OUTPUTDIR"
+@MACS2@ callpeak -t $OUTPUTDIR/mapped_reads.bam -n macs2 -q 0.05 -g $MACSGSIZE --nomodel --extsize 100 --outdir $OUTPUTDIR
 
-wait
 
 if [ ! -e "$OUTPUTDIRFULLPATH/macs1_peaks.bed" ]
 then
