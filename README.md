@@ -1,8 +1,20 @@
 # origami
 
+## Overview
+
+Origami is a pipeline for processing and calling high-confidence chromatin loops associated with 
+the ChIPped factor. The pipeline implements a semi-Bayesian two-compenent mixture model to learn
+which contacts within the data set appear to represent apparent structured chromatin loops
+in a cell population while correcting for important biases in ChIA-PET data (notably, linear
+genomic distance between the ends of a potential chromatin loop).
+
+## Contact Information
+
+For more information or any questions, please contact dsday@wi.mit.edu or young_computation@wi.mit.edu.
+
 ## Installation
 
-To install origami, first run the configure script to test for the presence of most of the dependencies origami needs. After configure completes successfully, run make to compile the C++ code. Then  make install will copy all the necessary files to the installation directory.
+To install origami, first run the configure script to test for the presence of mdost of the dependencies origami needs. After configure completes successfully, run make to compile the C++ code. Then  make install will copy all the necessary files to the installation directory.
 
 (Note: at the present time, the configure script does not check if Bamtools is installed correctly, please make sure it is! The Makfile may need to be adjusted to adapt to where Bamtools API files are installed on your system.)
 
