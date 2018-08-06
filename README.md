@@ -21,7 +21,7 @@ To install origami, first run the configure script to test for the presence of m
 ### Depedencies
 * cutadapt (tested with version 1.8)
 * samtools (tested with version 1.2)
-* bamtools
+* bamtools (tested with version 2.2.3)
 * bowtie1
 * MACS1 and MACS2
 * R (also requires the R libraries GenomicsRanges, matrixStats)
